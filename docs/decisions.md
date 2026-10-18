@@ -101,3 +101,17 @@ its file reaches its screens, since chrome above a NavHost has no reverse edge t
 graph files are sinks, or every screen change climbs into the container. Refines D10.
 Reverse if: supertype extras push typical PRs past D12's 8 screen cap; then build a
 method-level call graph from the same classes.
+
+**D19. Free to build and to use: every default path costs nothing.** The user's rule
+(2026-10-18). Public repos run on standard GitHub-hosted runners, free and with KVM. Private
+repos stay inside the plan's included minutes (2,000 a month on Free, about 130 PRs at the
+report's 12 to 15 minutes each) with artifacts kept one day for the 500 MB storage quota, or
+move to a self-hosted runner. GitHub's $0.002 per minute fee for self-hosted runners was
+postponed on 2025-12-15 with no new date. Images go to the orphan branch, with artifacts and
+the job summary as the fallback; object storage is opt-in only (refines D9). No LLM by default;
+AI talks to any OpenAI-compatible endpoint, and the free path is a local open-weight model
+under a permissive license, run by Ollama in the job or on the user's own machine (S6).
+GitHub Models, the free hosted option, was retired on 2026-07-30. A paid service may be an
+option; no feature may require one. Development follows the same rule: this repo goes public
+for free branch protection, never a paid plan.
+Reverse if: the user lifts the rule.
