@@ -1,0 +1,26 @@
+appId: io.github.kaulith.helpdeskanalytics
+---
+- launchApp:
+    clearState: true
+- tapOn: "Use an API key instead"
+- tapOn: "https://support.frappe.io"
+- eraseText
+- inputText: "https://dev.localhost"
+- tapOn: "API Key"
+- inputText: "replay-key"
+- tapOn: "API Secret"
+- inputText: "replay-secret"
+- hideKeyboard
+- tapOn: "https://dev.localhostpe.io"
+- repeat:
+    times: 40
+    commands:
+      - pressKey: Remote Dpad Right
+- eraseText: 60
+- inputText: "https://dev.localhost"
+- hideKeyboard
+- tapOn: "Sign in"
+- tapOn: "Open: .*, opens the ticket list"
+- tapOn: "SLA trend demo 6"
+- assertVisible: "Ticket ID"
+- assertVisible: "SLA trend demo 6"
