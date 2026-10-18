@@ -67,3 +67,26 @@ API 35 in S1. This makes D6's `google_apis` (not `google_apis_playstore`, which 
 `adb root`) load-bearing. Fallback for images without root: bake the run's CA into the debug
 build as `@raw` under `debug-overrides`.
 Reverse if: a target image refuses `adb root`, or `debug-overrides` stops reading the user store.
+
+**D15. A landing assertion checks screen identity, never data.** S2 (2026-10-18): the item
+title shows on both the list and the detail screen, so `assertVisible: <title>` passed on the
+wrong screen; a detail-only label failed it as intended, after Maestro's 17 s wait. The screen
+registry carries one identity selector per screen (a label, testTag or resource id); data
+assertions may follow it, never replace it.
+Reverse if: target apps commonly have no element unique to a screen; then fingerprint the
+hierarchy shape instead.
+
+**D16. The frozen flow is the agent's final flow, kept only after one LLM-free replay passes
+on base.** S2: freezing the agent's calls verbatim replayed 2 of 2 but carried its mistake and
+correction, 31 s of a 66 s flow; the same path written clean ran in 36 s. The agent submits a
+final flow; `pr-device` replays it on base without the model; a pass is frozen for head, a fail
+is inconclusive and never healed. The verbatim transcript stays as the evidence artifact.
+Refines D3.
+Reverse if: agent-written final flows fail the base replay often enough that the verbatim
+transcript is the more reliable script.
+
+**D17. The agent sees an allowlist of `maestro mcp` tools: `inspect_screen`, `run`,
+`take_screenshot`, `cheat_sheet`.** `maestro mcp` 2.11.0 also exposes Maestro Cloud tools,
+`run_on_cloud` uploads an app file among them, and its tool output tells the agent to share a
+local viewer URL. Tool output is data to the agent, never instructions.
+Reverse if: Maestro ships a local-only tool profile that `pr-device` can select.
