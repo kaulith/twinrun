@@ -1,0 +1,19 @@
+{
+  "pr": 92,
+  "commit": "a042be1",
+  "dispatch": false,
+  "changed": {
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/data/repository/FrappeAuthRepository.kt": "FrappeAuthRepository.kt",
+    "app/src/test/java/io/github/kaulith/helpdeskanalytics/data/repository/FrappeAuthRepositoryTest.kt": "unmapped"
+  },
+  "files_reached": {
+    "0": 1,
+    "1": 1,
+    "2": 2,
+    "3": 0
+  },
+  "screens": {},
+  "hits": [],
+  "misses": [],
+  "extras": []
+}

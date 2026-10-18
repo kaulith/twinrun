@@ -1,0 +1,31 @@
+{
+  "pr": 92,
+  "commit": "a042be1",
+  "dispatch": true,
+  "changed": {
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/data/repository/FrappeAuthRepository.kt": "FrappeAuthRepository.kt",
+    "app/src/test/java/io/github/kaulith/helpdeskanalytics/data/repository/FrappeAuthRepositoryTest.kt": "unmapped"
+  },
+  "files_reached": {
+    "0": 2,
+    "1": 5,
+    "2": 5,
+    "3": 0
+  },
+  "screens": {
+    "login": {
+      "hop": 2,
+      "chain": "LoginScreen.kt <- LoginViewModel.kt <- AuthRepository.kt <- FrappeAuthRepository.kt"
+    },
+    "settings": {
+      "hop": 2,
+      "chain": "SettingsScreen.kt <- SettingsViewModel.kt <- AuthRepository.kt <- FrappeAuthRepository.kt"
+    }
+  },
+  "hits": [],
+  "misses": [],
+  "extras": [
+    "login",
+    "settings"
+  ]
+}

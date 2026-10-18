@@ -1,0 +1,25 @@
+{
+  "pr": 95,
+  "commit": "3391968",
+  "dispatch": true,
+  "changed": {
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/screens/leaderboard/LeaderboardScreen.kt": "LeaderboardScreen.kt"
+  },
+  "files_reached": {
+    "0": 1,
+    "1": 1,
+    "2": 0,
+    "3": 0
+  },
+  "screens": {
+    "leaderboard": {
+      "hop": 0,
+      "chain": "LeaderboardScreen.kt"
+    }
+  },
+  "hits": [
+    "leaderboard"
+  ],
+  "misses": [],
+  "extras": []
+}

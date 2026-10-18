@@ -1,0 +1,50 @@
+{
+  "pr": 99,
+  "commit": "be2d5cc",
+  "dispatch": true,
+  "changed": {
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/components/FilterSheet.kt": "FilterSheet.kt",
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/screens/leaderboard/LeaderboardScreen.kt": "LeaderboardScreen.kt",
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/screens/reports/ReportBuilderScreen.kt": "ReportBuilderScreen.kt",
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/screens/reports/ReportsListScreen.kt": "ReportsListScreen.kt",
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/screens/tickets/TicketDetailScreen.kt": "TicketDetailScreen.kt",
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/screens/tickets/TicketsScreen.kt": "TicketsScreen.kt"
+  },
+  "files_reached": {
+    "0": 6,
+    "1": 1,
+    "2": 0,
+    "3": 0
+  },
+  "screens": {
+    "reports": {
+      "hop": 0,
+      "chain": "ReportsListScreen.kt"
+    },
+    "tickets": {
+      "hop": 0,
+      "chain": "TicketsScreen.kt"
+    },
+    "ticket_detail": {
+      "hop": 0,
+      "chain": "TicketDetailScreen.kt"
+    },
+    "leaderboard": {
+      "hop": 0,
+      "chain": "LeaderboardScreen.kt"
+    },
+    "report_builder": {
+      "hop": 0,
+      "chain": "ReportBuilderScreen.kt"
+    }
+  },
+  "hits": [
+    "leaderboard",
+    "report_builder",
+    "reports",
+    "ticket_detail",
+    "tickets"
+  ],
+  "misses": [],
+  "extras": []
+}

@@ -1,0 +1,29 @@
+{
+  "_note": "Written from each PR's diff before the graph ran. A screen is in the set when the diff changes what it can show.",
+  "prs": [
+    {
+      "pr": 95,
+      "commit": "3391968",
+      "screens": ["leaderboard"],
+      "why": "LeaderboardScreen.kt only: AgentRow passes isSelected to InitialsAvatar."
+    },
+    {
+      "pr": 99,
+      "commit": "be2d5cc",
+      "screens": ["leaderboard", "reports", "report_builder", "ticket_detail", "tickets"],
+      "why": "Five screen files change their menus directly; FilterSheet.kt's DropdownField reaches tickets and leaderboard, already in the set."
+    },
+    {
+      "pr": 92,
+      "commit": "a042be1",
+      "screens": [],
+      "why": "FrappeAuthRepository.signIn registers the device after loading the user. Nothing on screen changes; the login flow sends one more request, which the fixture would report as a backend miss."
+    },
+    {
+      "pr": 100,
+      "commit": "b379f83",
+      "screens": ["analytics", "dashboard", "leaderboard", "settings", "ticket_detail", "tickets"],
+      "why": "Probe outside the plan, for container chrome. AgentChip sits in MainScreen's top bar, shown on the five tab routes; the attachment tile is on ticket_detail. Graph walked on the #99 build, #100's parent."
+    }
+  ]
+}

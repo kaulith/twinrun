@@ -1,0 +1,75 @@
+{
+  "_note": "Written by hand from NavGraph.kt and BottomNavGraph.kt at 629bb9c. Identity selectors are Maestro selectors read from source; none has run on a device yet.",
+  "screens": [
+    {
+      "id": "login",
+      "route": "login",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.auth.LoginScreen",
+      "identity": { "text": "Site URL" }
+    },
+    {
+      "id": "dashboard",
+      "route": "dashboard",
+      "deepLink": "helpdesk://dashboard",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.dashboard.DashboardScreen",
+      "identity": { "text": "Resolved today" }
+    },
+    {
+      "id": "tickets",
+      "route": "tickets?preset={preset}",
+      "deepLink": "helpdesk://tickets",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.tickets.TicketsScreen",
+      "identity": { "text": "Search tickets" }
+    },
+    {
+      "id": "analytics",
+      "route": "analytics",
+      "deepLink": "helpdesk://analytics",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.analytics.AnalyticsScreen",
+      "identity": { "text": "Status distribution" }
+    },
+    {
+      "id": "leaderboard",
+      "route": "leaderboard",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.leaderboard.LeaderboardScreen",
+      "identity": { "text": "Ranking", "selected": true }
+    },
+    {
+      "id": "settings",
+      "route": "settings",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.settings.SettingsScreen",
+      "identity": { "text": "Active site" }
+    },
+    {
+      "id": "ticket_detail",
+      "route": "ticket_detail/{ticketId}?focus={focus}",
+      "deepLink": "helpdesk://ticket/{ticketId}",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.tickets.TicketDetailScreen",
+      "identity": { "text": "Ticket ID" }
+    },
+    {
+      "id": "reports",
+      "route": "reports",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.reports.ReportsListScreen",
+      "identity": { "text": "New report" }
+    },
+    {
+      "id": "report_builder",
+      "route": "report_builder?templateId={templateId}",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.reports.ReportBuilderScreen",
+      "identity": { "text": "Preview & export" }
+    }
+  ],
+  "containers": [
+    {
+      "id": "main",
+      "route": "main",
+      "composable": "io.github.kaulith.helpdeskanalytics.ui.screens.MainScreen",
+      "screens": ["dashboard", "tickets", "analytics", "leaderboard", "settings", "ticket_detail", "reports", "report_builder"]
+    }
+  ],
+  "navGraphs": [
+    "io.github.kaulith.helpdeskanalytics.ui.navigation.AppNavGraph",
+    "io.github.kaulith.helpdeskanalytics.ui.navigation.BottomNavGraph"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "pr": 100,
+  "commit": "b379f83",
+  "dispatch": false,
+  "changed": {
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/components/AgentChip.kt": "AgentChip.kt",
+    "app/src/main/java/io/github/kaulith/helpdeskanalytics/ui/screens/tickets/TicketDetailScreen.kt": "TicketDetailScreen.kt"
+  },
+  "files_reached": {
+    "0": 2,
+    "1": 2,
+    "2": 1,
+    "3": 0
+  },
+  "screens": {
+    "ticket_detail": {
+      "hop": 0,
+      "chain": "TicketDetailScreen.kt"
+    },
+    "analytics": {
+      "hop": 1,
+      "chain": "MainScreen.kt <- AgentChip.kt"
+    },
+    "dashboard": {
+      "hop": 1,
+      "chain": "MainScreen.kt <- AgentChip.kt"
+    },
+    "report_builder": {
+      "hop": 1,
+      "chain": "MainScreen.kt <- AgentChip.kt"
+    },
+    "leaderboard": {
+      "hop": 1,
+      "chain": "MainScreen.kt <- AgentChip.kt"
+    },
+    "tickets": {
+      "hop": 1,
+      "chain": "MainScreen.kt <- AgentChip.kt"
+    },
+    "settings": {
+      "hop": 1,
+      "chain": "MainScreen.kt <- AgentChip.kt"
+    },
+    "reports": {
+      "hop": 1,
+      "chain": "MainScreen.kt <- AgentChip.kt"
+    }
+  },
+  "hits": [
+    "analytics",
+    "dashboard",
+    "leaderboard",
+    "settings",
+    "ticket_detail",
+    "tickets"
+  ],
+  "misses": [],
+  "extras": [
+    "report_builder",
+    "reports"
+  ]
+}
