@@ -90,3 +90,14 @@ transcript is the more reliable script.
 `run_on_cloud` uploads an app file among them, and its tool output tells the agent to share a
 local viewer URL. Tool output is data to the agent, never instructions.
 Reverse if: Maestro ships a local-only tool profile that `twinrun` can select.
+
+**D18. The selection graph walks source files, steps to supertypes at no hop cost, expands
+containers and stops at nav graphs.** S3 (2026-10-18), four dogfood PRs: 12 hits, 0 misses,
+4 extras, all within 2 hops. A nested or inlined `$` class counts as its outer class's file.
+Supertype steps are what reach screens through DI: Koin was the only reverse edge from the
+changed implementation. Their extras are screens holding the interface without calling the
+changed method. A destination whose composable hosts a nested NavHost is a container; reaching
+its file reaches its screens, since chrome above a NavHost has no reverse edge to them. Nav
+graph files are sinks, or every screen change climbs into the container. Refines D10.
+Reverse if: supertype extras push typical PRs past D12's 8 screen cap; then build a
+method-level call graph from the same classes.
