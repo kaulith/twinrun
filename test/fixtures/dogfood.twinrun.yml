@@ -1,0 +1,46 @@
+app:
+  id: io.github.kaulith.helpdeskanalytics
+build:
+  command: ./gradlew :app:assembleDebug
+  apk: app/build/outputs/apk/debug/app-debug.apk
+backend:
+  hosts:
+    - dev.localhost
+screens:
+  - id: login
+    flow: .github/twinrun/flows/login.yaml
+    identity:
+      text: Site URL
+  - id: dashboard
+    deepLink: helpdesk://dashboard
+    identity:
+      text: Resolved today
+  - id: tickets
+    deepLink: helpdesk://tickets
+    identity:
+      text: Search tickets
+  - id: analytics
+    deepLink: helpdesk://analytics
+    identity:
+      text: Status distribution
+  - id: leaderboard
+    flow: .github/twinrun/flows/leaderboard.yaml
+    identity:
+      text: Ranking
+      selected: true
+  - id: settings
+    flow: .github/twinrun/flows/settings.yaml
+    identity:
+      text: Active site
+  - id: ticket_detail
+    deepLink: helpdesk://ticket/0253
+    identity:
+      text: Ticket ID
+  - id: reports
+    flow: .github/twinrun/flows/reports.yaml
+    identity:
+      text: New report
+  - id: report_builder
+    flow: .github/twinrun/flows/report_builder.yaml
+    identity:
+      text: Preview & export
