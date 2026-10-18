@@ -213,7 +213,7 @@ Default: a host-side proxy (mitmproxy, MIT per prior knowledge) in front of the 
 
 ### Inferences
 Proposed pipeline (all inference, built on the findings above):
-1. **Config** (`.github/pr-device.yml`): `fixtures: path`, `hosts: [api.example.com, cdn...]`, `match: {ignore_params, ignore_body_keys, use_headers}`, `misses: fail|forward`, `trust: nsc|root`, `backend: replay|openapi|compose`.
+1. **Config** (`.github/twinrun.yml`): `fixtures: path`, `hosts: [api.example.com, cdn...]`, `match: {ignore_params, ignore_body_keys, use_headers}`, `misses: fail|forward`, `trust: nsc|root`, `backend: replay|openapi|compose`.
 2. **Boot:** start mitmproxy (regular mode) on the runner with `server_replay=<fixtures>`, `server_replay_extra=404`, `server_replay_reuse` per config, ignore lists from config, plus an addon that logs misses and rewrites time fields. Boot emulator; `adb shell settings put global http_proxy 10.0.2.2:8080`.
 3. **Trust:** if `trust: nsc`, push CA as user cert (debug NSC trusts it, pins bypassed); if `trust: root`, use a Google APIs image and inject into the system store (APEX bind-mount on API 34+).
 4. **Run base and head** against the same fixtures; reset proxy state between runs so pop order restarts.

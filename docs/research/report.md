@@ -1,6 +1,6 @@
 # Rent the driver, own the selection layer
 
-**Build `pr-device` (working name): an Apache-2.0 GitHub Action plus CLI that turns every Android PR into one advisory comment, and spend nearly all of the engineering on the three layers nobody has built: picking the screens a native diff reaches, serving those screens the right backend state, and keeping an AI driver comparable across base and head.** Every other stage can be rented from mature, permissively licensed projects. Maestro (Apache-2.0, 16k stars, MCP server built into the CLI) drives and replays ([Maestro](https://github.com/mobile-dev-inc/Maestro)); mitmproxy serves committed fixtures fail-closed ([mitmproxy options](https://docs.mitmproxy.org/stable/concepts/options/)); odiff or pixelmatch compares pixels; and a KVM emulator on a free public-repo `ubuntu-latest` runner cold-boots in about **25 seconds** ([first-party run](https://github.com/bwhtech/helpdesk_mobile/actions/runs/38678273450)). The closest existing tool, Screenmap, proves the shape (diff to "suspect" screens, deterministic replay first, an agent only for gaps, a comment that "reports, it does not gate") but only for Expo and React Native ([Screenmap](https://github.com/aleqsio/screenmap)). Google's Firebase App Testing agent proves "AI explores once, then replays", but it is closed, capped at 200 tests a month in preview, and runs on Google's devices ([Firebase](https://firebase.google.com/docs/app-distribution/android/app-testing-agent)), while Firebase Test Lab, the old default, **shuts down on 2027-09-30** ([FTL migrate FAQ](https://firebase.google.com/docs/test-lab/migrate-faq)). No tool, open or commercial, publishes precision or recall for diff-to-screen mapping or a false-positive rate for LLM visual judgement, so the product must report rather than gate, and must measure its own accuracy. The fixed defaults are: Maestro as driver and replay format, with an agent that explores base once over MCP and whose recorded YAML replays on head; mitmproxy with HAR fixtures; odiff plus a view-hierarchy diff, with an optional VLM caption; one sticky PR comment; and a `pull_request` build job split from a `workflow_run` device job. CI costs **$0 on public repos and about $0.07 to $0.18 on private ones**. LLM tokens add about **$0.10 on a replay-only PR and $0.45 on a PR that needs exploration** with a Sonnet-class model. iOS comes second and adds about $1 to $1.55 of macOS minutes per PR.
+**Build `twinrun`: an Apache-2.0 GitHub Action plus CLI that turns every Android PR into one advisory comment, and spend nearly all of the engineering on the three layers nobody has built: picking the screens a native diff reaches, serving those screens the right backend state, and keeping an AI driver comparable across base and head.** Every other stage can be rented from mature, permissively licensed projects. Maestro (Apache-2.0, 16k stars, MCP server built into the CLI) drives and replays ([Maestro](https://github.com/mobile-dev-inc/Maestro)); mitmproxy serves committed fixtures fail-closed ([mitmproxy options](https://docs.mitmproxy.org/stable/concepts/options/)); odiff or pixelmatch compares pixels; and a KVM emulator on a free public-repo `ubuntu-latest` runner cold-boots in about **25 seconds** ([first-party run](https://github.com/bwhtech/helpdesk_mobile/actions/runs/38678273450)). The closest existing tool, Screenmap, proves the shape (diff to "suspect" screens, deterministic replay first, an agent only for gaps, a comment that "reports, it does not gate") but only for Expo and React Native ([Screenmap](https://github.com/aleqsio/screenmap)). Google's Firebase App Testing agent proves "AI explores once, then replays", but it is closed, capped at 200 tests a month in preview, and runs on Google's devices ([Firebase](https://firebase.google.com/docs/app-distribution/android/app-testing-agent)), while Firebase Test Lab, the old default, **shuts down on 2027-09-30** ([FTL migrate FAQ](https://firebase.google.com/docs/test-lab/migrate-faq)). No tool, open or commercial, publishes precision or recall for diff-to-screen mapping or a false-positive rate for LLM visual judgement, so the product must report rather than gate, and must measure its own accuracy. The fixed defaults are: Maestro as driver and replay format, with an agent that explores base once over MCP and whose recorded YAML replays on head; mitmproxy with HAR fixtures; odiff plus a view-hierarchy diff, with an optional VLM caption; one sticky PR comment; and a `pull_request` build job split from a `workflow_run` device job. CI costs **$0 on public repos and about $0.07 to $0.18 on private ones**. LLM tokens add about **$0.10 on a replay-only PR and $0.45 on a PR that needs exploration** with a Sonnet-class model. iOS comes second and adds about $1 to $1.55 of macOS minutes per PR.
 
 ## Nine of ten pipeline stages already have mature open source parts
 
@@ -59,7 +59,7 @@ Chromatic's TurboSnap is the model to port. It traces git changes through the bu
 
 Most of the product is a recombination of ideas that already work somewhere else. The table records where each idea comes from, the license that governs reuse (an idea from a closed product is a concept, not code), and what this tool does better with it.
 
-| # | Idea | Source | License | How `pr-device` improves it |
+| # | Idea | Source | License | How `twinrun` improves it |
 |---|---|---|---|---|
 | 1 | Suspect screens from the diff, with a hop limit (1 to 3), a broad-change cap of 8, and an agent allowed to demote | Screenmap ([repo](https://github.com/aleqsio/screenmap)) | MIT | Native graph built from bytecode plus a navigation registry, supertype edges that can be walked in reverse, an evidence chain for every screen, and every demotion logged in the comment |
 | 2 | Global triggers that force a wide run; bypass when the graph is untouched | Chromatic TurboSnap ([docs](https://www.chromatic.com/docs/turbosnap/)) | Proprietary service; concept only | Android global classes (version catalog, theme, `res/values`, manifest, `Application`, DI roots); a "no screens affected" exit before any build runs |
@@ -71,7 +71,7 @@ Most of the product is a recombination of ideas that already work somewhere else
 | 8 | Snapshot diffs with `+`/`-`/`=` markers and stable refs | agent-device ([repo](https://github.com/callstack/agent-device)) | MIT | A base vs head hierarchy diff that labels each pixel region as moved, changed, added or removed |
 | 9 | Paths the agent finds become committed flows | Screenmap | MIT | Recorded on base during the PR itself, linked from the comment, and batched into a flows PR after merge |
 | 10 | Fail-closed replay with matching knobs and ordered repeats | mitmproxy `server_replay`; WireMock `repeatsAsScenarios` | MIT; Apache-2.0 (not re-verified) | Head-only misses reported as a PR signal; the mock's count of in-flight requests used as a network-idle readiness gate; engine-neutral HAR fixture store |
-| 11 | A debug-only trust anchor that also overrides pins | Android network security config ([docs](https://developer.android.com/privacy-and-security/security-config)) | Platform feature | One XML file that `pr-device init` generates, scoped to debug builds |
+| 11 | A debug-only trust anchor that also overrides pins | Android network security config ([docs](https://developer.android.com/privacy-and-security/security-config)) | Platform feature | One XML file that `twinrun init` generates, scoped to debug builds |
 | 12 | System CA injection by APEX bind-mount | HTTP Toolkit ([blog](https://httptoolkit.com/blog/android-14-install-system-ca-certificate/)) | Published technique | Opt-in zero-change mode, repeated on every boot |
 | 13 | Preflight environment gates, no retries, three-panel review (clean before, clean after, separate diff) | arun279/cue ([PR #125](https://github.com/arun279/cue/pull/125); [no-flake-masks test](https://github.com/arun279/cue/blob/feat/expo-native/test/ci/no-flake-masks.test.ts)) | MIT | An environment fingerprint stored with every capture; drift voids the comparison as "inconclusive" instead of flagging every screen |
 | 14 | SystemUI demo mode (fixed clock, battery, signal, no notifications) | AOSP ([demo_mode.md](https://android.googlesource.com/platform/frameworks/base/+/master/packages/SystemUI/docs/demo_mode.md)) | Platform feature | Pins the status bar at the source, so there are no default masks |
@@ -92,7 +92,7 @@ Licensing constrains a few choices. DroidAgent has no license file, so its code 
 
 ## Four unsolved problems are the product
 
-Everything in the first section is solved well enough to rent. Four problems are not, and together they define what makes `pr-device` worth building.
+Everything in the first section is solved well enough to rent. Four problems are not, and together they define what makes `twinrun` worth building.
 
 **First, nobody maps a native diff to screens.** Screenmap builds route edges from a regex over expo-router and react-navigation code, and its README scopes it to Expo, React Native and NativeScript ([Screenmap](https://github.com/aleqsio/screenmap); [screenmap.dev](https://screenmap.dev)). Preview tools capture everything. Coverage-based impact tools do not list Android. Academic static GUI models such as GATOR over-approximate and include transitions that cannot happen ([ProMal, ICSE 2021](https://2021.icse-conferences.org/details/icse-2021-ACM-Student-Research-Competition/11/ProMal-Precise-Window-Transition-Graphs-for-Android-via-Synergy-of-Program-Analysis-)). No source anywhere gives precision or recall for diff-to-screen mapping, static or LLM-based.
 
@@ -114,9 +114,9 @@ The steelman against building any of this deserves an answer. **Why not contribu
 
 **Why not ship previews only**, the way Sentry Snapshots does? Previews cannot see navigation, real data flow, insets or system UI. That is why a device run exists at all, though a preview tier is a sensible v2 addition.
 
-## The final product: `pr-device`, a two-workflow advisory action
+## The final product: `twinrun`, a two-workflow advisory action
 
-`pr-device` is an Apache-2.0 GitHub Action and CLI for Android apps, with iOS in v2. On every PR it:
+`twinrun` is an Apache-2.0 GitHub Action and CLI for Android apps, with iOS in v2. On every PR it:
 
 1. builds base and head debug builds;
 2. works out which screens the diff reaches, and in what backend state;
@@ -132,14 +132,14 @@ The language split follows the dependencies. The orchestrator is TypeScript on N
 ```text
 PR opened or synchronized
 │
-├─ Workflow A "pr-device-build"   on: pull_request   (read-only token, no secrets)
+├─ Workflow A "twinrun-build"   on: pull_request   (read-only token, no secrets)
 │    1. checkout, fetch-depth 0, compute merge base
 │    2. classify diff; zero impact → write "no screens affected" manifest, stop
 │    3. build base (merge base) and head debug APKs with the Gradle build cache
-│    4. pr-device plan --static → plan.json (candidate screens + evidence paths)
+│    4. twinrun plan --static → plan.json (candidate screens + evidence paths)
 │    5. upload artifact: base.apk, head.apk, plan.json, manifest.json
 │
-└─ Workflow B "pr-device-run"     on: workflow_run   (default-branch workflow file)
+└─ Workflow B "twinrun-run"     on: workflow_run   (default-branch workflow file)
      job "drive"   (LLM key; permissions: actions read only; fork PRs need environment approval)
        1. download artifact outside the workspace, validate manifest schema, find PR by head SHA
        2. LLM adjudication → final screens, rank, fixture scenario per screen, reasons
@@ -162,7 +162,7 @@ It builds a **screen registry** for both base and head, so it can tell new scree
 
 The reverse-reference graph comes from the compiled classes of both builds via ClassGraph. It walks supertype edges backwards, adds grep edges for resources, constants and inline functions, and stops at fan-out hubs. The default depth is **2 hops**, with a **broad-change cap of 8** screens per changed file. Each candidate keeps its evidence chain (changed symbol, path, screen).
 
-In Workflow B, the LLM adjudicator receives the diff, the candidates with evidence, the registry and the scenario list. It must return registry IDs only, each with a rank, a reason, a scenario and a confidence. It may add or demote screens, and every change is printed in the comment. A global trigger produces a **smoke set**: launch, plus one screen per top-level destination, plus the screens the adjudicator names. The run budget is **8 screens**, the label `pr-device: all` runs the full registry, and a weekly full run on main refreshes the registry and records which screens actually changed, so selection recall can be computed and published.
+In Workflow B, the LLM adjudicator receives the diff, the candidates with evidence, the registry and the scenario list. It must return registry IDs only, each with a rank, a reason, a scenario and a confidence. It may add or demote screens, and every change is printed in the comment. A global trigger produces a **smoke set**: launch, plus one screen per top-level destination, plus the screens the adjudicator names. The run budget is **8 screens**, the label `twinrun: all` runs the full registry, and a weekly full run on main refreshes the registry and records which screens actually changed, so selection recall can be computed and published.
 
 **Device.** The default device is `ubuntu-latest` x64 with the KVM udev rule, running a `google_apis` x86_64 **API 35** image on a Pixel 6 profile with 2 emulator cores and `swiftshader_indirect`. It is not ATD, because ATD drops SystemUI ([managed devices](https://developer.android.com/studio/test/managed-devices)), and not API 36 until the boot-wait hang is understood ([CircleCI forum](https://discuss.circleci.com/t/starting-android-emulator-with-api-36-hangs-while-waiting-for-boot-animation-with-workaround/54823)).
 
@@ -170,7 +170,7 @@ The emulator build is pinned. Each run cold-boots, and only the system image is 
 
 **Backend.** mitmproxy runs on the host in regular mode. `adb shell settings put global http_proxy 10.0.2.2:8080` routes the app through it. Trust comes from a generated `debug-overrides` network security config by default, or root CA injection in opt-in mode.
 
-Fixtures live in `.pr-device/fixtures/<scenario>/` as **HAR 1.2 JSON**. HAR is readable in code review, easy to scrub and not tied to one engine. The `pr-device` replay addon serves fixtures with mitmproxy's semantics:
+Fixtures live in `.twinrun/fixtures/<scenario>/` as **HAR 1.2 JSON**. HAR is readable in code review, easy to scrub and not tied to one engine. The `twinrun` replay addon serves fixtures with mitmproxy's semantics:
 
 - recorded flows are consumed in order;
 - the default matcher ignores headers and a denylist of volatile query and body keys;
@@ -178,19 +178,19 @@ Fixtures live in `.pr-device/fixtures/<scenario>/` as **HAR 1.2 JSON**. HAR is r
 - `Date` and expiry headers are refreshed;
 - absolute timestamps in JSON bodies shift by the gap between record time and launch time, anchored separately for each side.
 
-Base and head both replay **head's fixture set**, and fixture edits in the PR are called out separately. `pr-device record` captures fixtures from a local or staging session and runs a scrubber that strips `Authorization`, `Cookie` and keys and replaces PII with stable fakes. It can run from `workflow_dispatch`. Push notifications, browser OAuth and non-HTTP protocols are out of scope for the mock. Login replays a recorded token exchange through a committed `login` flow.
+Base and head both replay **head's fixture set**, and fixture edits in the PR are called out separately. `twinrun record` captures fixtures from a local or staging session and runs a scrubber that strips `Authorization`, `Cookie` and keys and replaces PII with stable fakes. It can run from `workflow_dispatch`. Push notifications, browser OAuth and non-HTTP protocols are out of scope for the mock. Login replays a recorded token exchange through a committed `login` flow.
 
 **Drive.** The default driver is Maestro: the CLI for deterministic replay, and `maestro mcp` as the action channel for the agent. Every step the agent takes is already Maestro YAML, validated by the same runtime that will replay it. The `Driver` interface (`snapshot`, `screenshot`, `act`, `logs`, `crashes`, `exportScript`) keeps agent-device and mobile-mcp as drop-in adapters.
 
 Navigation per screen follows a ladder:
 
 1. a **deep link** (`adb shell am start -W -a android.intent.action.VIEW -d <uri>`) with arguments taken from the scenario's fixtures;
-2. a **committed flow** at `.pr-device/flows/<screen-id>.yaml`, tagged with the screen ID;
+2. a **committed flow** at `.twinrun/flows/<screen-id>.yaml`, tagged with the screen ID;
 3. the **agent**, on base only.
 
 Every path ends with a **landing assertion**: the expected root `testTag`, `resource-id` or activity must be present, or the screen is marked "unreachable" rather than "changed".
 
-The agent loop belongs to `pr-device`, so the model is bring-your-own: native Anthropic, or any OpenAI-compatible base URL, which also covers Ollama and self-hosted UI-TARS. The model sees the accessibility hierarchy plus a screenshot downscaled to **540×1200 (about 860 image tokens)**. Prompt caching is mandatory, and the agent is capped at **40 steps per side**. Its only tools are device actions. On head, the recorded script replays without the LLM. If replay diverges, the comment shows where. An optional capped re-navigation on head is labeled "path changed on head".
+The agent loop belongs to `twinrun`, so the model is bring-your-own: native Anthropic, or any OpenAI-compatible base URL, which also covers Ollama and self-hosted UI-TARS. The model sees the accessibility hierarchy plus a screenshot downscaled to **540×1200 (about 860 image tokens)**. Prompt caching is mandatory, and the agent is capped at **40 steps per side**. Its only tools are device actions. On head, the recorded script replays without the LLM. If replay diverges, the comment shows where. An optional capped re-navigation on head is labeled "path changed on head".
 
 **Signals.** Two logcat streams start before the first launch: `logcat -b all -v threadtime,epoch,uid` and `-b crash` ([logcat](https://developer.android.com/tools/logcat)). Crashes and ANRs are detected from `FATAL EXCEPTION`, `ANR in <pkg>` and tombstone lines, cross-checked against Maestro's crash and ANR bundle. Each crash is attributed by side: **new on head**, pre-existing, or fixed on head. Frame and memory figures stay out of v1, because Google "strongly discourages" emulator benchmarks ([benchmarking in CI](https://developer.android.com/topic/performance/benchmarking/benchmarking-in-ci)).
 
@@ -202,10 +202,10 @@ Changed pixels are clustered into regions. Hierarchy nodes are matched by `resou
 
 New crashes come first. Each changed screen then gets a three-panel crop (before, after, highlighted diff) around the union of its regions, with a link to the full-size images. Collapsed sections cover unchanged screens, skipped screens with reasons, adjudicator additions and demotions, backend misses, fixture age and a cost line. The job summary mirrors the comment, and artifacts hold the full bundle, including a video stitched from step screenshots.
 
-Images go to an orphan `pr-device-assets` branch, pruned 30 days after the PR closes. Private repos can use S3 or R2 instead, or fall back to artifacts with no inline images. The undocumented `user-attachments` upload endpoint is never used from CI ([cue attach script](https://github.com/arun279/cue/blob/feat/expo-native/scripts/attach-pr-media.sh)).
+Images go to an orphan `twinrun-assets` branch, pruned 30 days after the PR closes. Private repos can use S3 or R2 instead, or fall back to artifacts with no inline images. The undocumented `user-attachments` upload endpoint is never used from CI ([cue attach script](https://github.com/arun279/cue/blob/feat/expo-native/scripts/attach-pr-media.sh)).
 
 ```md
-### pr-device: 3 changed · 4 unchanged · 1 new crash on head
+### twinrun: 3 changed · 4 unchanged · 1 new crash on head
 head 4e1f2a9 vs merge base 9c07b13 · API 35 Pixel 6 · fixtures 12 days old · updated 14:02 UTC
 New crash on head: OrderDetail (scenario: empty) · IllegalStateException in OrderDetailViewModel.kt:88
 | Screen | Why selected | Result |
@@ -220,7 +220,7 @@ New crash on head: OrderDetail (scenario: empty) · IllegalStateException in Ord
 | Driver | Maestro CLI for replay, `maestro mcp` for the agent | Apache-2.0, most mature, crash/ANR bundle, the agent writes the replay format directly |
 | Replay format | Maestro YAML, one flow per screen ID, with a landing assertion | Two exporters already exist; readable in review |
 | Agent | BYO model through Anthropic or any OpenAI-compatible URL; hierarchy plus 540×1200 screenshot; 40 steps per side; base only | Cost and comparability |
-| Mock engine | mitmproxy plus the `pr-device` HAR replay addon, fail-closed 404 | Python addon hook, ordered replay, miss logging |
+| Mock engine | mitmproxy plus the `twinrun` HAR replay addon, fail-closed 404 | Python addon hook, ordered replay, miss logging |
 | CA trust | Debug-only `network_security_config` | Works on stock images, bypasses pinning only in debug |
 | Device | `ubuntu-latest` x64, API 35 `google_apis`, Pixel 6, pinned emulator, cold boot | Measured 25.5 s boot; snapshot caching proved harmful |
 | Diff method | odiff threshold 0.1 with antialiasing, region clustering, hierarchy labels, optional VLM caption | Deterministic gate first; AI explains, never decides |
@@ -232,7 +232,7 @@ New crash on head: OrderDetail (scenario: empty) · IllegalStateException in Ord
 A repo opts in with one file:
 
 ```yaml
-# .github/pr-device.yml
+# .github/twinrun.yml
 app:      { module: app, variant: debug, package: com.example.shop }
 device:   { api: 35, image: google_apis, profile: pixel_6 }
 selection:
@@ -243,7 +243,7 @@ selection:
   smoke: [home, orders, profile]
 backend:
   mode: replay              # replay | openapi | compose | live
-  fixtures: .pr-device/fixtures
+  fixtures: .twinrun/fixtures
   scenarios: [default, empty, long-text, error]
   hosts: [api.example.com, img.example.com]
   trust: nsc                # nsc | root
@@ -259,7 +259,7 @@ report:
 
 The design follows GitHub Security Lab's split. The `pull_request` workflow builds with a read-only token, no secrets and `persist-credentials: false`. The privileged `workflow_run` workflow treats the artifact as untrusted: it extracts outside the workspace, validates the schema and looks up the PR by head SHA, because the artifact's PR number is attacker-controlled ([Security Lab](https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/)). `pull_request_target` is never used. Since 2025-12-08 it always runs the default branch's workflow ([changelog](https://github.blog/changelog/2025-11-07-actions-pull_request_target-and-environment-branch-protections-changes/)), and since June 2026 `actions/checkout` refuses fork heads under it ([changelog](https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout)). The tool's own design goes further in four ways.
 
-First, installing a fork-built APK in a privileged context is exactly what Security Lab warns against. So the **drive** job holds only the LLM key and no write token, the APK runs inside the emulator VM where the key never travels, and fork PRs wait for a maintainer to approve a protected `pr-device-fork` environment.
+First, installing a fork-built APK in a privileged context is exactly what Security Lab warns against. So the **drive** job holds only the LLM key and no write token, the APK runs inside the emulator VM where the key never travels, and fork PRs wait for a maintainer to approve a protected `twinrun-fork` environment.
 
 Second, the **publish** job holds the write token but runs nothing from the PR. It decodes every PNG and checks every size before it commits or comments.
 
@@ -272,7 +272,7 @@ Fourth, text on screen in a hostile app can try to steer the agent. That is a co
 | Area | v1 (Android) | v2 | Later |
 |---|---|---|---|
 | Platforms | Emulator on `ubuntu-latest` x64; native Kotlin apps (Compose and Views); React Native and Flutter apps run with config-declared routes | iOS simulator on `macos-latest` arm64, both sides in one job; expo-router and React Navigation route parsing compatible with Screenmap | Real devices through cloud adapters; GitLab and Bitrise |
-| Selection | Diff classifier, Android registry, bytecode graph plus grep, adjudication with scenarios, smoke set, `pr-device: all` label, weekly recall measurement | Per-screen JaCoCo coverage tier; a tier-0 render of affected `@Preview`s with Roborazzi; iOS graph from IndexStoreDB | Ranking learned from which screens actually changed |
+| Selection | Diff classifier, Android registry, bytecode graph plus grep, adjudication with scenarios, smoke set, `twinrun: all` label, weekly recall measurement | Per-screen JaCoCo coverage tier; a tier-0 render of affected `@Preview`s with Roborazzi; iOS graph from IndexStoreDB | Ranking learned from which screens actually changed |
 | Navigation | Deep link, committed flows with landing assertion, agent on base | Flows PR after merge; optional debug entry-point library that takes route plus JSON args | Seeding from a crawl graph |
 | Driver | Maestro CLI and MCP | agent-device and mobile-mcp adapters; explorer plug-ins (Arbigent, Midscene) that must return Maestro YAML | appium-mcp for Appium shops |
 | Backend | mitmproxy and HAR, `record`, scrubber, NSC trust, scenarios, time shift | Scheduled refresh opening fixture PRs; OpenAPI validation of fixtures; Prism fallback; `compose` real-backend mode; root CA and WireGuard modes; WireMock export | gRPC and WebSocket replay |
@@ -281,7 +281,7 @@ Fourth, text on screen in a hostile app can try to steer the agent. That is a co
 
 ### Non-goals
 
-`pr-device` does not gate merges. A finding never turns a check red, and infra failures say "inconclusive". It does not replace unit tests, instrumentation suites or preview screenshot tests such as Paparazzi and Roborazzi; it complements them with the real app. It does not benchmark performance on emulators. It does not test release builds with production pinning, push notifications delivered through FCM, browser OAuth, or non-HTTP protocols in v1. It does not crawl apps autonomously to hunt for bugs: the academic best case is a handful of non-crash bugs across dozens of apps (GraphDroid found 6 in its manual check, DroidAgent 3, VisionDroid 1) ([GraphDroid](https://arxiv.org/abs/2609.10031)), which is the wrong economics for every PR. It does not heal broken flows silently. It does not run a hosted review SaaS. And it does not depend on Firebase Test Lab or Flank.
+`twinrun` does not gate merges. A finding never turns a check red, and infra failures say "inconclusive". It does not replace unit tests, instrumentation suites or preview screenshot tests such as Paparazzi and Roborazzi; it complements them with the real app. It does not benchmark performance on emulators. It does not test release builds with production pinning, push notifications delivered through FCM, browser OAuth, or non-HTTP protocols in v1. It does not crawl apps autonomously to hunt for bugs: the academic best case is a handful of non-crash bugs across dozens of apps (GraphDroid found 6 in its manual check, DroidAgent 3, VisionDroid 1) ([GraphDroid](https://arxiv.org/abs/2609.10031)), which is the wrong economics for every PR. It does not heal broken flows silently. It does not run a hosted review SaaS. And it does not depend on Firebase Test Lab or Flank.
 
 ### Cost per PR
 
@@ -307,13 +307,13 @@ Two levers dominate. **Prompt caching is worth about 8×**: the same Sonnet run 
 | Hosted emulators are flaky | Patrol calls GitHub emulators "slow and unstable" ([Patrol](https://patrol.leancode.co/ci/platforms)); "System UI isn't responding" dialogs block input ([Bitrise forum](https://discuss.bitrise.io/t/android-emulator-shows-dialog-system-ui-isnt-responding-when-it-boots/23381)); snapshot drift flagged every screen in cue | Pinned versions, cold boot, readiness and preflight gates, fingerprint, "inconclusive" instead of false regressions, no retries |
 | Agent cost or nondeterminism | Google calls its own agent nondeterministic; uncached runs cost about 8× more | Explore once, replay on head, mandatory caching, step and screen caps, `cancel-in-progress` |
 | Hostile PR content | Fork code runs on a runner that holds the LLM key; on-screen prompt injection | Environment approval for forks, drive and publish jobs separated, device-only agent tools, default-branch config and flows for forks |
-| Adoption friction | Fixtures, a trust config and flows all come before the first useful comment | `pr-device init` generates the NSC and records a first fixture set; deep links work with no flows; `live` mode gives a first comment on day one |
+| Adoption friction | Fixtures, a trust config and flows all come before the first useful comment | `twinrun init` generates the NSC and records a first fixture set; deep links work with no flows; `live` mode gives a first comment on day one |
 | Upstream drift | Maestro is vendor-led (removed `maestro chat`, dropped physical iPhones in 2.11.0); no shared MCP tool schema across bridges | Pin Maestro; the `Driver` interface with agent-device as the second adapter in v2 |
 | Private-repo images | No public API uploads images to GitHub's CDN; raw-URL rendering for private repos unverified | S3/R2 and artifact modes ship in v1; a spike on branch rendering before 1.0 |
 | Overlap with others | Screenmap could add native support; Google could open its agent to local devices | Stay generic, open and BYO-model; interoperate with Screenmap's route conventions instead of competing on React Native |
 
 ## Conclusion
 
-The research changes where the effort goes. A year ago, the hard part of "AI tests my PR on a phone" looked like the agent. Now at least six permissively licensed drivers exist, Maestro ships MCP in its CLI, and agent-device exports Maestro YAML, so driving is close to solved and replay formats are converging. What remains unbuilt is everything around the agent that makes its output believable: which screens, in which state, compared against what, and judged by whom. That is why `pr-device` treats AI as a narrow, optional component (adjudicate a candidate list, explore once, caption a flagged region) inside a deterministic pipeline that still produces a useful comment with no model configured.
+The research changes where the effort goes. A year ago, the hard part of "AI tests my PR on a phone" looked like the agent. Now at least six permissively licensed drivers exist, Maestro ships MCP in its CLI, and agent-device exports Maestro YAML, so driving is close to solved and replay formats are converging. What remains unbuilt is everything around the agent that makes its output believable: which screens, in which state, compared against what, and judged by whom. That is why `twinrun` treats AI as a narrow, optional component (adjudicate a candidate list, explore once, caption a flagged region) inside a deterministic pipeline that still produces a useful comment with no model configured.
 
 The less obvious implication is that the mock proxy and the weekly full run are strategic assets, not plumbing. The fail-closed proxy is the determinism layer, a generic readiness signal, and the detector that tells reviewers a PR calls an endpoint nobody recorded. The weekly full run on main is the safety net, and it also produces the first labeled dataset of "this diff changed these screens". Every tool in this space currently ships without such data. Whoever publishes the first honest selection recall and diff false-positive numbers for native mobile will earn the trust that advisory tools otherwise never get, and the v1 definition above is built to collect exactly that evidence from its first week.

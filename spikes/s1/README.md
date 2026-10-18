@@ -2,7 +2,7 @@
 
 ## Setup (Mac, arm64)
 
-- AVD `prdevice_s1_api35`: `system-images;android-35;google_apis;arm64-v8a`, `pixel_6`.
+- AVD `twinrun_s1_api35`: `system-images;android-35;google_apis;arm64-v8a`, `pixel_6`.
 - mitmproxy 12.2.3 via `uv tool install mitmproxy`; CA in `~/.mitmproxy`, Android name
   `openssl x509 -subject_hash_old -noout -in ~/.mitmproxy/mitmproxy-ca-cert.pem` + `.0`.
 - App debug build with a `debug-overrides` network security config trusting `user` certs.
@@ -10,7 +10,7 @@
 ## Device
 
 ```sh
-emulator -avd prdevice_s1_api35 -no-snapshot -no-boot-anim -no-audio -no-window
+emulator -avd twinrun_s1_api35 -no-snapshot -no-boot-anim -no-audio -no-window
 openssl x509 -in ~/.mitmproxy/mitmproxy-ca-cert.pem -outform DER -out c8750f0d.0
 adb root && adb push c8750f0d.0 /data/local/tmp/
 adb shell 'mkdir -p /data/misc/user/0/cacerts-added &&

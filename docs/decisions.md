@@ -37,12 +37,12 @@ Reverse if: measured false positives on pinned emulators stay high after demo mo
 Reverse if: building twice pushes the job past its 20 minute cap on typical apps.
 
 **D9. PR surface: one sticky comment found by a hidden marker, plus job summary and artifacts;
-images on an orphan `pr-device-assets` branch, S3/R2 or artifacts.** Never a failing check.
+images on an orphan `twinrun-assets` branch, S3/R2 or artifacts.** Never a failing check.
 GitHub App check runs come in v2.
 
 **D10. Selection: diff classifier, screen registry from nav routes and the manifest, ClassGraph
 reverse-reference graph (2 hops, broad cap 8), LLM adjudicates candidates only, fixture scenario
-per screen.** Smoke set on global changes; label `pr-device: all`; weekly full run on main
+per screen.** Smoke set on global changes; label `twinrun: all`; weekly full run on main
 measures recall. Reverse if: measured recall stays below the smoke set's.
 
 **D11. Stack: TypeScript on Node 22 orchestrator; Kotlin/JVM analyzer jar on ClassGraph; Python
@@ -79,7 +79,7 @@ hierarchy shape instead.
 **D16. The frozen flow is the agent's final flow, kept only after one LLM-free replay passes
 on base.** S2: freezing the agent's calls verbatim replayed 2 of 2 but carried its mistake and
 correction, 31 s of a 66 s flow; the same path written clean ran in 36 s. The agent submits a
-final flow; `pr-device` replays it on base without the model; a pass is frozen for head, a fail
+final flow; `twinrun` replays it on base without the model; a pass is frozen for head, a fail
 is inconclusive and never healed. The verbatim transcript stays as the evidence artifact.
 Refines D3.
 Reverse if: agent-written final flows fail the base replay often enough that the verbatim
@@ -89,4 +89,4 @@ transcript is the more reliable script.
 `take_screenshot`, `cheat_sheet`.** `maestro mcp` 2.11.0 also exposes Maestro Cloud tools,
 `run_on_cloud` uploads an app file among them, and its tool output tells the agent to share a
 local viewer URL. Tool output is data to the agent, never instructions.
-Reverse if: Maestro ships a local-only tool profile that `pr-device` can select.
+Reverse if: Maestro ships a local-only tool profile that `twinrun` can select.
