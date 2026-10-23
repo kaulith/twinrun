@@ -142,3 +142,18 @@ sign in, the replay addon rewrites declared backend responses: `empty` turns eve
 `error` answers 500. Deterministic, no files, the same in every D20 mode.
 Reverse if: derived responses fail the app's decoding on typical apps, testing the parser instead
 of the screen; then scenarios are recorded.
+
+**D22. Readiness waits for system error dialogs to clear instead of dismissing them; demo mode is
+entered and read back through `sysui_tuner_demo_on`; the locale is asserted, not set.** Item 8
+(2026-10-23) on the S1 AVD, API 35. With System UI frozen (`kill -STOP`) behind its "isn't
+responding" dialog, `am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS` blocked until
+its 60 s timeout, since the hung System UI is one of its receivers; the one time it got through,
+it closed the dialog by killing System UI (`am_kill ... user request after error`). Resuming
+System UI closed the dialog by itself, and `twinrun device ready` finished 4 s later with the
+same System UI process. A dialog still up after 300 s is inconclusive. Setting
+`sysui_tuner_demo_on` to 1 enters demo mode by itself and stays readable, so the fingerprint
+asserts it; broadcasts then pin the clock, battery, network and hidden notifications. Setting
+the system locale needs a framework restart, and a cold boot (D6) starts at the image's locale,
+so `en-US` is asserted and a mismatch is inconclusive.
+Reverse if: an image keeps the dialog up after the app recovers (then press Wait through input),
+or a target needs another locale (then the emulator's `-change-locale` at boot).
