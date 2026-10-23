@@ -3,7 +3,9 @@ import { X509Certificate } from "node:crypto";
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { parseConfig } from "./config.js";
 import { Device } from "./device.js";
+import { Driver } from "./driver.js";
 import { Inconclusive } from "./inconclusive.js";
 import { Mock } from "./mock.js";
 
@@ -12,7 +14,8 @@ const { version } = JSON.parse(readFileSync(new URL("../package.json", import.me
 const usage = `usage: twinrun --version
        twinrun device ready --serial <serial> --ca <pem>
        twinrun device check --serial <serial> --fingerprint <json>
-       twinrun mock --serial <serial> --har <har> --backend-host <host>...`;
+       twinrun mock --serial <serial> --har <har> --backend-host <host>...
+       twinrun navigate --serial <serial> --screen <id>...   (from the app repo root)`;
 
 try {
   const { values, positionals } = parseArgs({
@@ -23,11 +26,12 @@ try {
       fingerprint: { type: "string" },
       har: { type: "string" },
       "backend-host": { type: "string", multiple: true },
+      screen: { type: "string", multiple: true },
     },
     allowPositionals: true,
   });
   const command = positionals.join(" ");
-  const { serial, ca, fingerprint, har, "backend-host": backendHosts } = values;
+  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds } = values;
   if (values.version) {
     console.log(version);
   } else if (command === "device ready" && serial && ca) {
@@ -41,6 +45,17 @@ try {
     console.error("serving the HAR; Ctrl-C stops it and prints the misses");
     await once(process, "SIGINT");
     console.log(JSON.stringify(await mock.stop(), null, 2));
+  } else if (command === "navigate" && serial && screenIds) {
+    const config = parseConfig(readFileSync(".github/twinrun.yml", "utf8"));
+    const screens = screenIds.map((id) => {
+      const screen = config.screens.find((s) => s.id === id);
+      if (!screen) throw new Error(`--screen ${id}: not in .github/twinrun.yml`);
+      return screen;
+    });
+    const driver = new Driver(serial, config.app.id);
+    if (config.signIn) await driver.signIn(config.signIn);
+    for (const screen of screens) await driver.navigate(screen);
+    console.log(JSON.stringify(screenIds));
   } else {
     throw new Error(usage);
   }

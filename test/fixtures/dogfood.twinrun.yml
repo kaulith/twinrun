@@ -6,6 +6,7 @@ build:
 backend:
   hosts:
     - dev.localhost
+signIn: .github/twinrun/flows/sign_in.yaml
 screens:
   - id: login
     flow: .github/twinrun/flows/login.yaml

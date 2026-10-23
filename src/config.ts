@@ -6,23 +6,19 @@ export interface Identity {
   selected?: boolean;
 }
 
-export interface Screen {
-  id: string;
-  deepLink?: string;
-  flow?: string;
-  identity: Identity;
-}
+export type Screen = { id: string; identity: Identity } & ({ deepLink: string } | { flow: string });
 
 export interface Config {
   app: { id: string };
   build: { command: string; apk: string };
   backend: { hosts: string[] };
+  signIn?: string;
   screens: Screen[];
   caps: { screens: number; agentSteps: number; timeoutMinutes: number };
 }
 
 export function parseConfig(source: string): Config {
-  const root = mapping(parse(source), "", ["app", "build", "backend", "screens", "caps"]);
+  const root = mapping(parse(source), "", ["app", "build", "backend", "signIn", "screens", "caps"]);
   const app = mapping(root.app, "app", ["id"]);
   const build = mapping(root.build, "build", ["command", "apk"]);
   const backend = mapping(root.backend, "backend", ["hosts"]);
@@ -34,6 +30,7 @@ export function parseConfig(source: string): Config {
     app: { id: nonEmpty(app.id, "app.id") },
     build: { command: nonEmpty(build.command, "build.command"), apk: nonEmpty(build.apk, "build.apk") },
     backend: { hosts: list(backend.hosts, "backend.hosts").map((host, i) => nonEmpty(host, `backend.hosts[${i}]`)) },
+    ...(root.signIn === undefined ? {} : { signIn: nonEmpty(root.signIn, "signIn") }),
     screens,
     caps: {
       screens: count(caps.screens ?? 8, "caps.screens"),
