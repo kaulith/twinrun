@@ -220,3 +220,34 @@ Use **Maestro as the default deterministic execution and replay substrate** (Apa
 ### Gaps
 - No standard MCP tool schema for mobile devices exists across Maestro MCP, mobile-mcp, agent-device and appium-mcp; each names tools differently, so an adapter per server is needed. I found no effort to standardise it.
 - No head-to-head reliability comparison of the MCP bridges on CI emulators (e.g. GitHub-hosted runners) was found.
+
+## 7. Item 10 experiments: reaching a screen with the Maestro CLI (2026-10-23)
+
+Maestro CLI 2.11.0 on the S1 AVD (`twinrun_s1_api35`, API 35), app served by `twinrun mock` from
+`spikes/s1/dashboard.har` with ticket 0253 recorded live first. Times are wall clock per
+`maestro test`, JVM start included.
+
+### Cited Findings
+- `stopApp`, `openLink: helpdesk://ticket/0253`, `assertVisible: {text: Ticket ID}`: passed in
+  20 s; the screenshot matched the live recording.
+- `stopApp`, `runFlow: <absolute path>` (`launchApp`, two taps), the same assertion: passed in
+  31 s. `runFlow` takes an absolute path from a flow file written elsewhere.
+- A wrong identity (`{text: Ranking, selected: true}` on the ticket screen) exited 1 after 29 s.
+  Stdout carries `Assert that "Ranking", selected is visible... FAILED`, a blank line, then
+  `Assertion is false: "Ranking", selected is visible`; no ANSI colour off a TTY.
+- `maestro test` passes `MAESTRO_`-prefixed variables from its own environment into the flow:
+  `inputText: ${MAESTRO_API_KEY}` typed the value (asserted visible). The console prints the
+  step unresolved (`Input text ${MAESTRO_API_KEY}...`).
+- The debug output does not: `~/.maestro/tests/<run>/<flow>/commands.json` holds the resolved
+  `MAESTRO_API_SECRET` value twice in the flow's env and once as the typed `text`.
+- Through `twinrun navigate`: sign in, then both ways, 123 s; sign in plus a wrong identity,
+  97 s, so sign in is about 70 s here against S2's 22 s inside a 36 s flow.
+
+### Inferences
+- One generated flow per screen keeps a single Maestro start per screen and lets Maestro's
+  failure line be the inconclusive message.
+- Credentials as `MAESTRO_` variables stay off every command line, but Maestro's debug
+  directory must stay out of artifacts once a real secret is used.
+
+### Gaps
+- Why sign in took about 70 s here is not measured step by step.

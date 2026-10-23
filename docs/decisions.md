@@ -157,3 +157,17 @@ the system locale needs a framework restart, and a cold boot (D6) starts at the 
 so `en-US` is asserted and a mismatch is inconclusive.
 Reverse if: an image keeps the dialog up after the app recovers (then press Wait through input),
 or a target needs another locale (then the emulator's `-change-locale` at boot).
+
+**D23. A screen is reached by one generated Maestro flow: `stopApp`, then `openLink` for a deep
+link or `runFlow` for the committed flow, then `assertVisible` with the screen's identity
+selector; sign-in credentials reach the login flow as `MAESTRO_` environment variables.** Item 10
+(2026-10-23), Maestro 2.11.0 on the S1 AVD and replay (`docs/research/notes/ai_drivers.md`,
+section 7). One Maestro start per screen: deep link 20 s, committed flow 31 s; a wrong identity
+fails in 29 s and Maestro's `Assertion is false` line becomes the inconclusive message. Stopping
+the app first makes each screen independent of the one before it. `openLink` replaces `am start`,
+so navigation stays in one process. `maestro test` hands its own `MAESTRO_` variables to the flow
+and prints the step unresolved, so no credential sits on a command line; it does write resolved
+values to `~/.maestro/tests/<run>/<flow>/commands.json`, so that directory never becomes an
+artifact once a real secret is in play (item 18). Refines D1, D2 and D15.
+Reverse if: Maestro stops passing `MAESTRO_` variables, or one start per screen pushes 8 screens a
+side past D12's 20 minutes; then one flow per side with a capture step per screen.
