@@ -41,3 +41,13 @@ mitmdump --listen-host 127.0.0.1 -p 8080 --set connection_strategy=lazy \
 ```
 
 Sign in with any API key and secret; replay does not match on headers.
+
+## Navigate (item 10)
+
+`app/` is laid out as an app repo: `.github/twinrun.yml` plus a sign-in flow and a ticket flow.
+With `twinrun mock` serving `dashboard.har`, from `app/`:
+
+```sh
+MAESTRO_API_KEY=replay-key MAESTRO_API_SECRET=replay-secret \
+  twinrun navigate --serial emulator-5554 --screen ticket_detail --screen ticket_detail_from_list
+```
