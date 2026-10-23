@@ -18,6 +18,7 @@ const pixel6: Fingerprint = {
   transitionAnimationScale: "0",
   animatorDurationScale: "0",
   demoMode: "1",
+  airplaneMode: "0",
 };
 
 test("a drifted setting is named with the value expected", () => {

@@ -2,9 +2,9 @@ import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
 import { Inconclusive } from "./inconclusive.js";
+import { until } from "./until.js";
 
 export interface Fingerprint {
   image: string;
@@ -22,6 +22,7 @@ export interface Fingerprint {
   transitionAnimationScale: string;
   animatorDurationScale: string;
   demoMode: string;
+  airplaneMode: string;
 }
 
 const pinned: Partial<Fingerprint> = {
@@ -35,9 +36,11 @@ const pinned: Partial<Fingerprint> = {
   transitionAnimationScale: "0",
   animatorDurationScale: "0",
   demoMode: "1",
+  airplaneMode: "0",
 };
 
 const pinCommands = [
+  "cmd connectivity airplane-mode disable",
   "wm size reset",
   "wm density reset",
   "settings put system font_scale 1.0",
@@ -50,8 +53,8 @@ const pinCommands = [
   "settings put global sysui_tuner_demo_on 1",
   "am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1200",
   "am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false",
-  "am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4",
-  "am broadcast -a com.android.systemui.demo -e command network -e mobile show -e datatype none -e level 4",
+  "am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e fully true",
+  "am broadcast -a com.android.systemui.demo -e command network -e mobile hide",
   "am broadcast -a com.android.systemui.demo -e command notifications -e visible false",
 ];
 
@@ -67,6 +70,7 @@ export class Device {
     await until("package manager", async () => (await this.shell("pm path android")).startsWith("package:"));
     await until("system error dialogs to clear", async () => !/Application (Not Responding|Error):/.test(await this.shell("dumpsys window windows")));
     for (const command of pinCommands) await this.shell(command);
+    await this.clearProxy();
     await this.trust(ca);
     const fingerprint = await this.fingerprint();
     matchFingerprint(pinned, fingerprint);
@@ -77,6 +81,16 @@ export class Device {
     const fingerprint = await this.fingerprint();
     matchFingerprint(expected, fingerprint);
     return fingerprint;
+  }
+
+  async useProxy(address: string): Promise<void> {
+    await this.shell(`settings put global http_proxy ${address}`);
+    const proxy = await this.shell("settings get global http_proxy");
+    if (proxy !== address) throw new Inconclusive(`http_proxy ${proxy}, expected ${address}`);
+  }
+
+  clearProxy(): Promise<void> {
+    return this.useProxy(":0");
   }
 
   private async trust(ca: string): Promise<void> {
@@ -115,6 +129,7 @@ export class Device {
       transitionAnimationScale: await this.shell("settings get global transition_animation_scale"),
       animatorDurationScale: await this.shell("settings get global animator_duration_scale"),
       demoMode: await this.shell("settings get global sysui_tuner_demo_on"),
+      airplaneMode: await this.shell("settings get global airplane_mode_on"),
     };
   }
 
@@ -141,21 +156,6 @@ async function run(command: string, args: string[]): Promise<string> {
   } catch (error) {
     throw new Inconclusive(`${command} ${args.join(" ")}: ${(error as Error).message.trim()}`);
   }
-}
-
-async function until(what: string, probe: () => Promise<boolean>): Promise<void> {
-  const deadline = Date.now() + 300_000;
-  let failure = "";
-  while (Date.now() < deadline) {
-    // adbd drops the link while it restarts as root
-    try {
-      if (await probe()) return;
-    } catch (error) {
-      failure = `: ${(error as Error).message}`;
-    }
-    await sleep(1000);
-  }
-  throw new Inconclusive(`timed out waiting for ${what}${failure}`);
 }
 
 function property(text: string, key: string): string {
