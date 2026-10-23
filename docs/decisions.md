@@ -115,3 +115,30 @@ GitHub Models, the free hosted option, was retired on 2026-07-30. A paid service
 option; no feature may require one. Development follows the same rule: this repo goes public
 for free branch protection, never a paid plan.
 Reverse if: the user lifts the rule.
+
+**D20. The backend mode is picked from what the repo has, first match wins: live recording,
+committed fixtures, OpenAPI spec, the app's models, nothing.** The user's call (2026-10-23):
+fixtures made by hand for every app block adoption. Live: with a test account in the drive job's
+secrets, a record pass runs base against the backend its debug build already calls, then base and
+head are both captured from that recording, so both sides see the same data and nothing is
+committed or goes stale. Writes are blocked while recording unless config allows them. Head's
+misses go upstream once, only to declared backend hosts, are pinned into the run's recording and
+listed as answered live; a 404 would show a working new screen as broken. Same-repo PRs only:
+Workflow A runs the fork's workflow, so even a fork's `base.apk` is untrusted with a login.
+Committed fixtures (D4, `twinrun record`) serve forks and apps without a reachable backend. Spec:
+an OpenAPI document in the repo, served by Prism. Models: Retrofit declarations plus
+serialization classes give each path a response shape, filled with seeded fakes by field name;
+only once S8 passes. Nothing: every call gets 404, which still catches crashes and error layouts.
+Config can pin a mode; the comment names the mode used and why. A backend down during the record
+pass is inconclusive, never retried. Refines D8 (live mode replays the run's recording, not
+head's set) and D13 (head's miss path in live mode).
+Reverse if: the record pass pushes typical runs past D12's 20 minutes, or backend outages leave
+live runs inconclusive more often than committed fixtures go stale.
+
+**D21. Only the `default` scenario is recorded; `empty`, `long-text` and `error` are derived from
+it at serve time.** The user's call (2026-10-23), with D20: one recording per app, not four. After
+sign in, the replay addon rewrites declared backend responses: `empty` turns every array into
+`[]`, `long-text` stretches strings that do not parse as a URL, date, number or identifier,
+`error` answers 500. Deterministic, no files, the same in every D20 mode.
+Reverse if: derived responses fail the app's decoding on typical apps, testing the parser instead
+of the screen; then scenarios are recorded.
