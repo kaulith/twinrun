@@ -1,12 +1,35 @@
 #!/usr/bin/env node
+import { X509Certificate } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { parseArgs } from "node:util";
+import { Device } from "./device.js";
+import { Inconclusive } from "./inconclusive.js";
 
 const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
-const [command] = process.argv.slice(2);
-if (command === "--version") {
-  console.log(version);
-} else {
-  console.error("usage: twinrun --version");
-  process.exitCode = 1;
+const usage = `usage: twinrun --version
+       twinrun device ready --serial <serial> --ca <pem>
+       twinrun device check --serial <serial> --fingerprint <json>`;
+
+try {
+  const { values, positionals } = parseArgs({
+    options: { version: { type: "boolean" }, serial: { type: "string" }, ca: { type: "string" }, fingerprint: { type: "string" } },
+    allowPositionals: true,
+  });
+  const command = positionals.join(" ");
+  const { serial, ca, fingerprint } = values;
+  if (values.version) {
+    console.log(version);
+  } else if (command === "device ready" && serial && ca) {
+    // a path that is not a certificate is bad input, not an inconclusive device
+    new X509Certificate(readFileSync(ca));
+    console.log(JSON.stringify(await new Device(serial).ready(ca), null, 2));
+  } else if (command === "device check" && serial && fingerprint) {
+    console.log(JSON.stringify(await new Device(serial).check(JSON.parse(readFileSync(fingerprint, "utf8"))), null, 2));
+  } else {
+    throw new Error(usage);
+  }
+} catch (error) {
+  console.error(error instanceof Inconclusive ? `inconclusive: ${error.message}` : (error as Error).message);
+  process.exitCode = error instanceof Inconclusive ? 2 : 1;
 }
