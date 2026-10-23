@@ -12,7 +12,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/cli.js",
     "test": "node --test \"dist/**/*.test.js\""
   },
   "devDependencies": {
