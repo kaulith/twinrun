@@ -10,6 +10,7 @@ public class OrdersActivity extends Activity {
         super.onCreate(savedInstanceState);
         TextView title = new TextView(this);
         title.setText("Orders");
+        title.setTextSize(24);
         setContentView(title);
     }
 }
