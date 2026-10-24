@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { X509Certificate } from "node:crypto";
 import { once } from "node:events";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { compare } from "./compare.js";
 import { parseConfig } from "./config.js";
 import { Device } from "./device.js";
 import { Driver } from "./driver.js";
@@ -15,7 +16,8 @@ const usage = `usage: twinrun --version
        twinrun device ready --serial <serial> --ca <pem>
        twinrun device check --serial <serial> --fingerprint <json>
        twinrun mock --serial <serial> --har <har> --backend-host <host>...
-       twinrun navigate --serial <serial> --screen <id>...   (from the app repo root)`;
+       twinrun capture --serial <serial> --screen <id>... --out <dir>   (from the app repo root)
+       twinrun compare --base <png> --head <png> --out <png>`;
 
 try {
   const { values, positionals } = parseArgs({
@@ -27,11 +29,14 @@ try {
       har: { type: "string" },
       "backend-host": { type: "string", multiple: true },
       screen: { type: "string", multiple: true },
+      out: { type: "string" },
+      base: { type: "string" },
+      head: { type: "string" },
     },
     allowPositionals: true,
   });
   const command = positionals.join(" ");
-  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds } = values;
+  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head } = values;
   if (values.version) {
     console.log(version);
   } else if (command === "device ready" && serial && ca) {
@@ -45,17 +50,23 @@ try {
     console.error("serving the HAR; Ctrl-C stops it and prints the misses");
     await once(process, "SIGINT");
     console.log(JSON.stringify(await mock.stop(), null, 2));
-  } else if (command === "navigate" && serial && screenIds) {
+  } else if (command === "capture" && serial && screenIds && out) {
     const config = parseConfig(readFileSync(".github/twinrun.yml", "utf8"));
     const screens = screenIds.map((id) => {
       const screen = config.screens.find((s) => s.id === id);
       if (!screen) throw new Error(`--screen ${id}: not in .github/twinrun.yml`);
       return screen;
     });
+    mkdirSync(out, { recursive: true });
     const driver = new Driver(serial, config.app.id);
     if (config.signIn) await driver.signIn(config.signIn);
-    for (const screen of screens) await driver.navigate(screen);
-    console.log(JSON.stringify(screenIds));
+    const screenshots = [];
+    for (const screen of screens) screenshots.push(await driver.capture(screen, out));
+    console.log(JSON.stringify(screenshots, null, 2));
+  } else if (command === "compare" && base && head && out) {
+    const comparison = compare(readFileSync(base), readFileSync(head));
+    if (comparison.changed) writeFileSync(out, comparison.crop);
+    console.log(JSON.stringify({ ...comparison, crop: comparison.changed ? out : undefined }, null, 2));
   } else {
     throw new Error(usage);
   }

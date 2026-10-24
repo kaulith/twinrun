@@ -17,9 +17,12 @@
   },
   "devDependencies": {
     "@types/node": "22.20.5",
+    "@types/pngjs": "6.0.5",
     "typescript": "7.0.2"
   },
   "dependencies": {
+    "pixelmatch": "8.0.0",
+    "pngjs": "7.0.0",
     "yaml": "2.9.1"
   }
 }
