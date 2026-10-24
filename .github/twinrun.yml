@@ -1,0 +1,13 @@
+app:
+  id: com.northwind.orders
+build:
+  command: cd test/app && ./gradlew :app:assembleDebug
+  apk: test/app/app/build/outputs/apk/debug/app-debug.apk
+backend:
+  hosts:
+    - api.northwind.example.com
+screens:
+  - id: orders
+    deepLink: northwind://orders
+    identity:
+      text: Orders
