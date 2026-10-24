@@ -171,3 +171,16 @@ values to `~/.maestro/tests/<run>/<flow>/commands.json`, so that directory never
 artifact once a real secret is in play (item 18). Refines D1, D2 and D15.
 Reverse if: Maestro stops passing `MAESTRO_` variables, or one start per screen pushes 8 screens a
 side past D12's 20 minutes; then one flow per side with a capture step per screen.
+
+**D24. Comment images are blob URLs pinned to the assets commit SHA with `?raw=true`
+(`https://github.com/<owner>/<repo>/blob/<sha>/<path>?raw=true`), base and head side by side in an
+HTML table.** S4 (2026-10-24, `spikes/s4/README.md`), private repo, comment posted by the owner:
+blob URLs by branch or SHA, the `/raw/` path and the HTML table rendered on desktop and in GitHub
+Mobile. `raw.githubusercontent.com` rendered on neither, since it needs a token for a private
+repo; a relative path failed in GitHub Mobile and would break from the PR's files tab. GitHub keeps
+each `src` as written (no camo), so the viewer's own session fetches the image and a logged-out
+viewer gets 404. The SHA pins a comment to its own run's images when a later run or the 30 day
+prune rewrites the branch. Refines D9.
+Reverse if: a comment posted by `GITHUB_TOKEN` (item 13) does not render the same, or a SHA URL
+stops resolving after the prune while its PR is still open.
+
