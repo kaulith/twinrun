@@ -1,0 +1,26 @@
+{
+  "base": {
+    "commit": "3bc40b6025b251df96e9ca6c2fa8e2e51f7b2174",
+    "misses": []
+  },
+  "head": {
+    "commit": "3391968cf430519d18941b2ebcac4d3561a7d421",
+    "misses": []
+  },
+  "screens": [
+    {
+      "id": "ticket_detail",
+      "changed": false
+    },
+    {
+      "id": "ticket_detail_from_list",
+      "changed": false
+    },
+    {
+      "id": "leaderboard",
+      "changed": true,
+      "pixels": 18507,
+      "crop": "crops/leaderboard.png"
+    }
+  ]
+}
