@@ -61,7 +61,8 @@ export async function run({ repo, config, localFiles, serial, ca, har, base, hea
       }
     }
     const result = { base: { commit: base, misses: before.misses }, head: { commit: head, misses: after.misses }, screens };
-    await writeFile(join(out, "report.md"), renderReport(result));
+    await writeFile(join(out, "result.json"), JSON.stringify(result, null, 2));
+    await writeFile(join(out, "report.md"), renderReport(result, (crop) => crop));
     return result;
   } finally {
     await rm(scratch, { recursive: true });

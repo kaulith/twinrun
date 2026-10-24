@@ -2,15 +2,17 @@
 import { execFileSync } from "node:child_process";
 import { X509Certificate } from "node:crypto";
 import { once } from "node:events";
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { isAbsolute, normalize } from "node:path";
+import { appendFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { isAbsolute, join, normalize } from "node:path";
 import { parseArgs } from "node:util";
 import { compare } from "./compare.js";
 import { parseConfig } from "./config.js";
 import { Device } from "./device.js";
 import { Driver } from "./driver.js";
+import { GitHub } from "./github.js";
 import { Inconclusive } from "./inconclusive.js";
 import { Mock } from "./mock.js";
+import { renderReport, type RunResult } from "./report.js";
 import { run } from "./run.js";
 
 const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -22,7 +24,8 @@ const usage = `usage: twinrun --version
        twinrun capture --serial <serial> --screen <id>... --out <dir>   (from the app repo root)
        twinrun compare --base <png> --head <png> --out <png>
        twinrun run --serial <serial> --ca <pem> --base <commit> --head <commit> --har <har> --out <dir>
-                   [--local-file <path>...]   (from the app repo root)`;
+                   [--local-file <path>...]   (from the app repo root)
+       twinrun comment --out <dir> --repo <owner/name> --pr <number>   (GITHUB_TOKEN in the environment)`;
 
 try {
   const { values, positionals } = parseArgs({
@@ -38,11 +41,13 @@ try {
       base: { type: "string" },
       head: { type: "string" },
       "local-file": { type: "string", multiple: true },
+      repo: { type: "string" },
+      pr: { type: "string" },
     },
     allowPositionals: true,
   });
   const command = positionals.join(" ");
-  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head, "local-file": localFiles = [] } = values;
+  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head, "local-file": localFiles = [], repo, pr } = values;
   if (values.version) {
     console.log(version);
   } else if (command === "device ready" && serial && ca) {
@@ -83,6 +88,18 @@ try {
     const config = parseConfig(readFileSync(".github/twinrun.yml", "utf8"));
     const commits = { base: commit("--base", base), head: commit("--head", head) };
     console.log(JSON.stringify(await run({ repo: process.cwd(), config, localFiles, serial, ca, har, out, ...commits }), null, 2));
+  } else if (command === "comment" && out && repo && pr) {
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error(`--repo ${repo}: expected owner/name`);
+    if (!/^[1-9]\d*$/.test(pr)) throw new Error(`--pr ${pr}: expected a pull request number`);
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) throw new Error("GITHUB_TOKEN: expected a token in the environment");
+    const result = JSON.parse(readFileSync(join(out, "result.json"), "utf8")) as RunResult;
+    const github = new GitHub(repo, token);
+    const crops = result.screens.flatMap((screen) => (screen.changed ? [screen.crop] : []));
+    const urls = await github.uploadCrops(Object.fromEntries(crops.map((crop) => [crop, readFileSync(join(out, crop))])));
+    const body = renderReport(result, (crop) => urls[crop]);
+    console.log(JSON.stringify({ comment: await github.upsertComment(Number(pr), body) }, null, 2));
+    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, body);
   } else {
     throw new Error(usage);
   }

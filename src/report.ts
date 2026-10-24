@@ -13,11 +13,11 @@ export interface RunResult {
   screens: ScreenResult[];
 }
 
-export function renderReport({ base, head, screens }: RunResult): string {
+export function renderReport({ base, head, screens }: RunResult, imageUrl: (crop: string) => string): string {
   const lines = ["# twinrun", "", `Base \`${base.commit}\`, head \`${head.commit}\`.`];
   for (const screen of screens) {
     if (screen.changed) {
-      lines.push("", `## ${screen.id}`, "", `Pixel diff: ${screen.pixels} pixels changed. Base, head and diff:`, "", `![${screen.id}](${screen.crop})`);
+      lines.push("", `## ${screen.id}`, "", `Pixel diff: ${screen.pixels} pixels changed. Base, head and diff:`, "", `![${screen.id}](${imageUrl(screen.crop)})`);
     }
   }
   const unchanged = screens.filter((screen) => !screen.changed).map((screen) => screen.id);
@@ -26,7 +26,7 @@ export function renderReport({ base, head, screens }: RunResult): string {
   for (const [name, side] of [["base", base], ["head", head]] as const) {
     const backend = side.misses.filter((miss) => miss.backend);
     lines.push(`- ${name}: ${backend.length} to the backend, ${side.misses.length - backend.length} to other hosts`);
-    lines.push(...backend.map((miss) => `  - \`${miss.method} ${miss.url}\``));
+    lines.push(...backend.map((miss) => `  - \`${`${miss.method} ${miss.url}`.replaceAll("`", "%60")}\``));
   }
   return `${lines.join("\n")}\n`;
 }
