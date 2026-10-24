@@ -245,3 +245,20 @@ inconclusive and never forced, since forcing would orphan the other run's images
 D24.
 Reverse if: the race on the assets branch makes runs inconclusive often (then one ref per PR), or
 GitHub Mobile does not render the bot's comment as it rendered the owner's.
+
+**D29. Workflow A ships as a reusable workflow in this repo (`.github/workflows/build.yml`,
+`workflow_call`), and checks twinrun out at `job.workflow_sha`; the app repo's caller is a
+`pull_request` workflow of a few lines. Its job builds the merge base of the PR's base and head
+SHAs and the head SHA with `twinrun build` and uploads `base.apk`, `head.apk` and `commits.json` as
+an artifact kept one day; read-only token, no secrets. twinrun's own pull requests run it against
+a sample app in `test/app/`.** Item 14 (2026-10-24, `docs/research/notes/ci_infra_signals.md`,
+section 10). Workflow B (item 15) needs a drive job and a publish job with different permissions;
+a composite action is one step inside the caller's job, so the caller would write those jobs and
+their permissions itself. A reusable workflow keeps job layout, permissions and the absence of
+secrets in twinrun's file. `job.workflow_sha` gives a called workflow its own commit, which is what
+a composite action's `github.action_path` gave. On test PR #3: job 85 s, the artifact held both
+APKs, the merge base SHA and the head SHA. The sample app keeps twinrun's own CI off the user's
+repos. Refines D8 and D9.
+Reverse if: apps need steps before the build that the build command cannot hold (then a
+composite action for the build job), or `job.workflow_sha` is missing where twinrun runs (GitHub
+Enterprise Server).

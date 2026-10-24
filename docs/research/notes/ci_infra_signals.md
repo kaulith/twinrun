@@ -305,3 +305,34 @@ scratch worktree of the dogfood repo; S1 AVD on the replay of `spikes/s1/dashboa
 - Per side timings (install, sign in, each screen) are not broken out; the 150 s after the builds
   cover readiness and both sides.
 - A cold Gradle user home, as in CI without a cache, was not measured.
+
+## 10. Item 14 experiments: Workflow A as a reusable workflow (2026-10-24)
+
+`.github/workflows/build.yml` (`workflow_call`), called by `.github/workflows/twinrun.yml` on this
+repo's pull requests, against the Java sample app in `test/app/` (AGP 9.4.0, Gradle 9.7.1, no
+dependencies past AGP). Test PR #3 adds one `setTextSize` call.
+
+### Cited Findings
+- `job.workflow_repository` and `job.workflow_sha` name "the workflow file that defines the
+  current job"; for a called workflow that is the reusable workflow, not the caller, so it can
+  check out its own repository at its own commit. `github.action_path` exists only in composite
+  actions. — [GitHub docs: contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)
+- A composite action is one step's worth of `runs.steps` inside the caller's job. —
+  [GitHub docs: metadata syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/metadata-syntax)
+- Called locally (`uses: ./.github/workflows/build.yml`), `job.workflow_sha` was the PR's merge
+  commit `4a615dc`, the same commit as the app checkout.
+- `actions/upload-artifact` v7.0.2, released 2026-10-07, tag commit `cf430e0`, LICENSE MIT.
+- Run [40114081514](https://github.com/kaulith/twinrun/actions/runs/40114081514), `ubuntu-latest`,
+  default JDK and `ANDROID_HOME`: twinrun `npm ci` and build under 2 s (npm cache hit), Gradle
+  9.7.1 download 5 s, base build 1 m 6 s (daemon start, AGP download), head build 3 s, upload 2 s;
+  job 85 s. Artifact `twinrun-build`, 1,724,529 bytes, expires 2026-10-25T17:01:06Z: `base.apk`
+  869,734 bytes, `head.apk` 869,762 bytes, `commits.json` with base `35dcf92`, equal to `git
+  merge-base origin/main origin/orders-title-size`, and head `e2163f9`, the PR head.
+- Locally, `twinrun build --base HEAD~1 --head HEAD`, where `HEAD~1` predates the sample app:
+  `inconclusive: build at d9f6f72: exit 1, expected 0`, exit 2, worktree removed.
+
+### Gaps
+- No Gradle cache between runs; a real app's cold build is the dogfood CI's 1 m 18 s to 1 m 41 s
+  with its cache (section 1), so twice that without one.
+- A fork PR was not tried; GitHub runs `pull_request` from forks with a read-only token, which
+  this job already asks for.
