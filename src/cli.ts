@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
 import { X509Certificate } from "node:crypto";
 import { once } from "node:events";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { isAbsolute, normalize } from "node:path";
 import { parseArgs } from "node:util";
 import { compare } from "./compare.js";
 import { parseConfig } from "./config.js";
@@ -9,6 +11,7 @@ import { Device } from "./device.js";
 import { Driver } from "./driver.js";
 import { Inconclusive } from "./inconclusive.js";
 import { Mock } from "./mock.js";
+import { run } from "./run.js";
 
 const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
@@ -17,7 +20,9 @@ const usage = `usage: twinrun --version
        twinrun device check --serial <serial> --fingerprint <json>
        twinrun mock --serial <serial> --har <har> --backend-host <host>...
        twinrun capture --serial <serial> --screen <id>... --out <dir>   (from the app repo root)
-       twinrun compare --base <png> --head <png> --out <png>`;
+       twinrun compare --base <png> --head <png> --out <png>
+       twinrun run --serial <serial> --ca <pem> --base <commit> --head <commit> --har <har> --out <dir>
+                   [--local-file <path>...]   (from the app repo root)`;
 
 try {
   const { values, positionals } = parseArgs({
@@ -32,11 +37,12 @@ try {
       out: { type: "string" },
       base: { type: "string" },
       head: { type: "string" },
+      "local-file": { type: "string", multiple: true },
     },
     allowPositionals: true,
   });
   const command = positionals.join(" ");
-  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head } = values;
+  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head, "local-file": localFiles = [] } = values;
   if (values.version) {
     console.log(version);
   } else if (command === "device ready" && serial && ca) {
@@ -67,10 +73,28 @@ try {
     const comparison = compare(readFileSync(base), readFileSync(head));
     if (comparison.changed) writeFileSync(out, comparison.crop);
     console.log(JSON.stringify({ ...comparison, crop: comparison.changed ? out : undefined }, null, 2));
+  } else if (command === "run" && serial && ca && base && head && har && out) {
+    new X509Certificate(readFileSync(ca));
+    for (const file of localFiles) {
+      if (isAbsolute(file) || normalize(file).startsWith("..") || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
+        throw new Error(`--local-file ${file}: expected a file inside this checkout`);
+      }
+    }
+    const config = parseConfig(readFileSync(".github/twinrun.yml", "utf8"));
+    const commits = { base: commit("--base", base), head: commit("--head", head) };
+    console.log(JSON.stringify(await run({ repo: process.cwd(), config, localFiles, serial, ca, har, out, ...commits }), null, 2));
   } else {
     throw new Error(usage);
   }
 } catch (error) {
   console.error(error instanceof Inconclusive ? `inconclusive: ${error.message}` : (error as Error).message);
   process.exitCode = error instanceof Inconclusive ? 2 : 1;
+}
+
+function commit(flag: string, revision: string): string {
+  try {
+    return execFileSync("git", ["rev-parse", "--verify", "--quiet", `${revision}^{commit}`], { encoding: "utf8" }).trim();
+  } catch {
+    throw new Error(`${flag} ${revision}: not a commit in this repository`);
+  }
 }

@@ -93,6 +93,16 @@ export class Device {
     return this.useProxy(":0");
   }
 
+  async installClean(appId: string, apk: string): Promise<void> {
+    if (await this.installed(appId)) await this.adb("uninstall", appId);
+    await this.adb("install", "-g", apk);
+    if (!(await this.installed(appId))) throw new Inconclusive(`${appId} not installed after adb install`);
+  }
+
+  private async installed(appId: string): Promise<boolean> {
+    return (await this.shell(`pm list packages ${appId}`)).split(/\r?\n/).includes(`package:${appId}`);
+  }
+
   private async trust(ca: string): Promise<void> {
     const name = `${await run("openssl", ["x509", "-subject_hash_old", "-noout", "-in", ca])}.0`;
     const scratch = await mkdtemp(join(tmpdir(), "twinrun-"));
