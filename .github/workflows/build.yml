@@ -1,0 +1,43 @@
+name: twinrun build
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: app
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: twinrun
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: twinrun/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: twinrun
+      - run: node ../twinrun/dist/cli.js build --base "$(git merge-base "$BASE" "$HEAD")" --head "$HEAD" --out "$RUNNER_TEMP/twinrun"
+        working-directory: app
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: twinrun-build
+          path: ${{ runner.temp }}/twinrun
+          retention-days: 1
+          if-no-files-found: error
