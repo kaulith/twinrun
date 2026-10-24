@@ -19,6 +19,12 @@ test("caps left out of the file take the defaults", () => {
   assert.deepEqual(parseConfig(dogfood).caps, { screens: 8, agentSteps: 40, timeoutMinutes: 20 });
 });
 
+test("a screen id that cannot name a file fails", () => {
+  assert.throws(() => parseConfig(dogfood.replace("id: dashboard", "id: ../dashboard")), {
+    message: "screens[1].id: must hold only letters, digits, _ and -, since it names files",
+  });
+});
+
 test("a bad field fails with its path", () => {
   assert.throws(() => parseConfig(dogfood.replace("text: Site URL", "label: Site URL")), {
     message: "screens[0].identity.label: unknown field",

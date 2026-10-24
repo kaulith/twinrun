@@ -45,8 +45,10 @@ function screen(value: unknown, at: string): Screen {
   if ((fields.deepLink === undefined) === (fields.flow === undefined)) fail(at, "needs exactly one of deepLink and flow");
   const identity = mapping(fields.identity, `${at}.identity`, ["text", "id", "selected"]);
   if ((identity.text === undefined) === (identity.id === undefined)) fail(`${at}.identity`, "needs exactly one of text and id");
+  const id = nonEmpty(fields.id, `${at}.id`);
+  if (!/^[\w-]+$/.test(id)) fail(`${at}.id`, "must hold only letters, digits, _ and -, since it names files");
   return {
-    id: nonEmpty(fields.id, `${at}.id`),
+    id,
     ...(fields.flow === undefined
       ? { deepLink: nonEmpty(fields.deepLink, `${at}.deepLink`) }
       : { flow: nonEmpty(fields.flow, `${at}.flow`) }),
