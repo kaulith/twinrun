@@ -5,8 +5,9 @@ import { once } from "node:events";
 import { appendFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, normalize } from "node:path";
 import { parseArgs } from "node:util";
+import { Builder } from "./build.js";
 import { compare } from "./compare.js";
-import { parseConfig } from "./config.js";
+import { parseConfig, type Config } from "./config.js";
 import { Device } from "./device.js";
 import { Driver } from "./driver.js";
 import { GitHub } from "./github.js";
@@ -23,6 +24,7 @@ const usage = `usage: twinrun --version
        twinrun mock --serial <serial> --har <har> --backend-host <host>...
        twinrun capture --serial <serial> --screen <id>... --out <dir>   (from the app repo root)
        twinrun compare --base <png> --head <png> --out <png>
+       twinrun build --base <commit> --head <commit> --out <dir> [--local-file <path>...]   (from the app repo root)
        twinrun run --serial <serial> --ca <pem> --base <commit> --head <commit> --har <har> --out <dir>
                    [--local-file <path>...]   (from the app repo root)
        twinrun comment --out <dir> --repo <owner/name> --pr <number>   (GITHUB_TOKEN in the environment)`;
@@ -48,6 +50,11 @@ try {
   });
   const command = positionals.join(" ");
   const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head, "local-file": localFiles = [], repo, pr } = values;
+  for (const file of localFiles) {
+    if (isAbsolute(file) || normalize(file).startsWith("..") || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
+      throw new Error(`--local-file ${file}: expected a file inside this checkout`);
+    }
+  }
   if (values.version) {
     console.log(version);
   } else if (command === "device ready" && serial && ca) {
@@ -62,7 +69,7 @@ try {
     await once(process, "SIGINT");
     console.log(JSON.stringify(await mock.stop(), null, 2));
   } else if (command === "capture" && serial && screenIds && out) {
-    const config = parseConfig(readFileSync(".github/twinrun.yml", "utf8"));
+    const config = readConfig();
     const screens = screenIds.map((id) => {
       const screen = config.screens.find((s) => s.id === id);
       if (!screen) throw new Error(`--screen ${id}: not in .github/twinrun.yml`);
@@ -78,14 +85,18 @@ try {
     const comparison = compare(readFileSync(base), readFileSync(head));
     if (comparison.changed) writeFileSync(out, comparison.crop);
     console.log(JSON.stringify({ ...comparison, crop: comparison.changed ? out : undefined }, null, 2));
+  } else if (command === "build" && base && head && out) {
+    const config = readConfig();
+    const commits = { base: commit("--base", base), head: commit("--head", head) };
+    const builder = new Builder(process.cwd(), config.build, localFiles, config.caps.timeoutMinutes);
+    mkdirSync(out, { recursive: true });
+    await builder.apk(commits.base, join(out, "base.apk"));
+    await builder.apk(commits.head, join(out, "head.apk"));
+    writeFileSync(join(out, "commits.json"), JSON.stringify(commits, null, 2));
+    console.log(JSON.stringify(commits, null, 2));
   } else if (command === "run" && serial && ca && base && head && har && out) {
     new X509Certificate(readFileSync(ca));
-    for (const file of localFiles) {
-      if (isAbsolute(file) || normalize(file).startsWith("..") || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
-        throw new Error(`--local-file ${file}: expected a file inside this checkout`);
-      }
-    }
-    const config = parseConfig(readFileSync(".github/twinrun.yml", "utf8"));
+    const config = readConfig();
     const commits = { base: commit("--base", base), head: commit("--head", head) };
     console.log(JSON.stringify(await run({ repo: process.cwd(), config, localFiles, serial, ca, har, out, ...commits }), null, 2));
   } else if (command === "comment" && out && repo && pr) {
@@ -114,4 +125,8 @@ function commit(flag: string, revision: string): string {
   } catch {
     throw new Error(`${flag} ${revision}: not a commit in this repository`);
   }
+}
+
+function readConfig(): Config {
+  return parseConfig(readFileSync(".github/twinrun.yml", "utf8"));
 }
