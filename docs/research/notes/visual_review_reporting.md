@@ -253,3 +253,17 @@ Unsolved: native (non-RN) affected-screen detection, reaching deep screens deter
 ### Gaps
 - No open-source native Android/iOS equivalent of Screenmap was found; a broader GitHub search might surface smaller projects.
 - No data on how often runner image updates (system image, emulator binary) invalidate cached baselines.
+
+## 7. Item 11: pixelmatch 8 in process (2026-10-24)
+
+- pixelmatch 8.0.0 (ISC, 2026-10-06, mapbox) takes decoded RGBA buffers, defaults `threshold` to
+  0.1 and now measures it as the OKLab HyAB distance (7.x and odiff use YIQ); anti-aliased
+  pixels are detected and skipped unless `includeAA`. Its `index.d.ts` ships in the package. It
+  depends on pngjs `^7.0.0` (MIT, 7.0.0 from 2023-02-20); types from `@types/pngjs` 6.0.5 (MIT).
+  License files read from the npm tarballs. — [pixelmatch](https://github.com/mapbox/pixelmatch)
+- odiff-bin 4.5.0 (MIT, 2026-07-23) ships native binaries through `@odiff/<platform>` optional
+  dependencies; cropping its result still needs a PNG decoder in process.
+- Dogfood #95 leaderboard, 1080x2400 PNGs from Maestro: base against a second base capture 0
+  pixels, head against head 0, base against head 18,507 pixels in one box (x 190, y 664, 158 by
+  558 with a 32 px margin) around the three highlighted avatars. `compare` took 106 ms in
+  process, 0.15 s through the CLI with Node start.

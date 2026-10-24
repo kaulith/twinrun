@@ -251,3 +251,28 @@ Maestro CLI 2.11.0 on the S1 AVD (`twinrun_s1_api35`, API 35), app served by `tw
 
 ### Gaps
 - Why sign in took about 70 s here is not measured step by step.
+
+## 8. Item 11 experiments: capture and tab identity with the Maestro CLI (2026-10-24)
+
+Maestro CLI 2.11.0, S1 AVD cold booted, dogfood #95 base (`3bc40b6`) and head (`3391968`) debug
+builds on the replay of `spikes/s1/dashboard.har`, leaderboard recorded live on base first.
+
+### Cited Findings
+- `{text: Ranking, selected: true}` failed on the leaderboard. Its hierarchy has `selected=true`
+  on the tab's `android.view.View` (bounds `[661,2127][860,2337]`) and `Ranking` on a
+  `TextView` two levels below; a second `Ranking` is the screen title, and the tab label shows
+  on every tab screen, so text alone is no identity.
+- `containsDescendant` is an unknown property in 2.11.0. `{selected: true, containsDescendants:
+  [{text: Ranking}]}` passed on the leaderboard in 11 s and failed on the dashboard after 23 s
+  (`Assertion is false: Contains descendants: ["Ranking"], selected is visible`).
+- `takeScreenshot: <name>` with `--test-output-dir <dir>` writes
+  `<dir>/<run>/<flow>/takeScreenshot/<name>.png`. An absolute path is refused: `Invalid path ...
+  for takeScreenshot: it resolves outside this run's takeScreenshot output folder`.
+  `--flatten-debug-output` with `--test-output-dir` left no file in that directory.
+- With only `--test-output-dir`, every run still wrote `~/.maestro/tests/<run>/maestro.log`, and
+  each of six such logs held the `MAESTRO_API_SECRET` value, capture runs included, whose flows
+  never read it. Adding `--debug-output <dir>` left no new run under `~/.maestro/tests`.
+- Through `twinrun capture`: sign in plus the leaderboard, 42 to 45 s per side.
+
+### Gaps
+- Where `--flatten-debug-output` writes `takeScreenshot` output was not found.

@@ -184,3 +184,29 @@ prune rewrites the branch. Refines D9.
 Reverse if: a comment posted by `GITHUB_TOKEN` (item 13) does not render the same, or a SHA URL
 stops resolving after the prune while its PR is still open.
 
+**D25. Capture is Maestro's `takeScreenshot` as the last step of the D23 flow; every Maestro run
+writes its test and debug output into a scratch directory removed after the run; a `selected`
+identity asserts the selected element containing its label.** Item 11 (2026-10-24), Maestro
+2.11.0 (`docs/research/notes/ai_drivers.md`, section 8). `takeScreenshot` refuses paths outside
+its output folder, so the Driver copies the PNG out of `--test-output-dir`. Without
+`--debug-output`, every run left `~/.maestro/tests/<run>/maestro.log` with `MAESTRO_` values in
+clear, capture runs included; with it nothing is left behind, which settles D23's item 18 note.
+Selected state sits on a tab's container, its label below it: `{text: Ranking, selected: true}`
+failed on the leaderboard, `{selected: true, containsDescendants: [{text: Ranking}]}` passed there
+and failed on the dashboard. The view hierarchy is captured with its first consumer, item 31.
+Refines D15 and D23.
+Reverse if: Maestro writes a screenshot to a given path, or a target exposes selected state on the
+label itself.
+
+**D26. The diff is pixelmatch 8 in process on pngjs buffers, threshold 0.1; the crop is the box
+around all changed pixels plus 32 px, cut from base, head and diff and laid side by side in one
+PNG.** Item 11 (2026-10-24, `docs/research/notes/visual_review_reporting.md`, section 7). The crop
+needs decoded pixels in process anyway; pixelmatch works on those same buffers and marks changed
+pixels in the diff, while odiff adds a native binary per platform and a second decode of its
+output. On #95: base against base and head against head 0 pixels, base against head 18,507
+pixels in one box around the three avatars; 106 ms per compare, so odiff's speed buys nothing at
+phone sizes. pixelmatch 8 measures the threshold as OKLab HyAB distance, not D7's YIQ. Replaces
+odiff in D7; antialiasing detection and the threshold value stay.
+Reverse if: OKLab at 0.1 flags pinned emulator noise that YIQ did not (then pixelmatch 7 or odiff),
+or a screen with changes far apart needs one crop per region.
+
