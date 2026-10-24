@@ -229,3 +229,19 @@ builds 13 s and 12 s, the whole run 179 s, the same 18,507 pixel crop as item 11
 Reverse if: a build needs local files outside the repo, or a cold project build in a fresh
 worktree pushes typical runs past D12's 20 minutes; then build in place in a scratch clone kept
 between runs.
+
+**D28. The run's output directory is the publish step's whole input. `run` writes `result.json`
+beside the screenshots and crops; `comment` commits the changed screens' crops to `twinrun-assets`
+through the REST API, one commit per run on top of the branch tip with only that run's
+`crops/<id>.png`, fast forward only, and shows each as a markdown image with its D24 SHA blob URL;
+the comment holding a leading `<!-- twinrun -->` marker is edited in place, or created.** Item 13
+(2026-10-24, `docs/research/notes/visual_review_reporting.md`, section 8). Two dispatches with
+`GITHUB_TOKEN` on draft PR #2: comment `6386254993` created by `github-actions[bot]`, then edited;
+assets commits `6061a6f` and `f950baa` chained on S4's `db130c6` and verified by GitHub; the image
+rendered from the bot's comment like the owner's in S4. The REST API needs only the token and the
+output directory, no checkout or push in the publish job. D26's crop already holds base, head and
+diff, so it replaces D24's HTML table. A rejected fast forward, two runs racing for the branch, is
+inconclusive and never forced, since forcing would orphan the other run's images. Refines D9 and
+D24.
+Reverse if: the race on the assets branch makes runs inconclusive often (then one ref per PR), or
+GitHub Mobile does not render the bot's comment as it rendered the owner's.

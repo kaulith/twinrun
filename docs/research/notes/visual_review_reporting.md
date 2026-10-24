@@ -267,3 +267,34 @@ Unsolved: native (non-RN) affected-screen detection, reaching deep screens deter
   pixels, head against head 0, base against head 18,507 pixels in one box (x 190, y 664, 158 by
   558 with a 32 px margin) around the three highlighted avatars. `compare` took 106 ms in
   process, 0.15 s through the CLI with Node start.
+
+## 8. Item 13: the sticky comment posted by `GITHUB_TOKEN` (2026-10-24)
+
+`twinrun comment` from the `comment probe` workflow (`workflow_dispatch`, `contents: write`,
+`pull-requests: write`), on draft PR #2, from the #95 fixture run in `test/fixtures/run/`.
+
+### Cited Findings
+- Endpoints: `GET git/matching-refs/heads/twinrun-assets` (prefix match, so the exact ref is
+  picked from the list), `POST git/blobs` (base64), `POST git/trees`, `POST git/commits`, `PATCH
+  git/refs/heads/twinrun-assets` with `force: false`; `GET issues/{pr}/comments`, `PATCH
+  issues/comments/{id}`, `POST issues/{pr}/comments`. —
+  [Git database API](https://docs.github.com/en/rest/git),
+  [Issue comments API](https://docs.github.com/en/rest/issues/comments)
+- Run [40108822516](https://github.com/kaulith/twinrun/actions/runs/40108822516) created comment
+  `6386254993` as `github-actions[bot]`; run
+  [40108860582](https://github.com/kaulith/twinrun/actions/runs/40108860582) edited it:
+  `created_at` 15:50:55, `updated_at` 15:51:24, one comment on the PR. Job 10 s.
+- Assets branch: S4's `db130c6`, then `6061a6f`, then `f950baa`, each the parent of the next; each
+  tree holds only `crops/leaderboard.png`. GitHub marked the API commits verified (`reason:
+  valid`).
+- The comment's `body_html` keeps the blob URL as `src`, as in S4. The URL answers 200
+  `image/png` through a redirect to `raw.githubusercontent.com` now that the repo is public; a
+  desktop browser, logged out, loaded it at 506 by 558.
+- Logged out, the run page shows "Sign in to view logs" and no job summary.
+
+### Gaps
+- GitHub Mobile render of the bot's comment, and the job summary, need a signed-in viewer.
+- The comment has no length cap; GitHub refuses bodies over 65,536 characters, and the backend
+  miss list grows with the app's requests.
+- The marker match does not check the author; a comment that starts with the marker, written by
+  anyone, is the one edited.
