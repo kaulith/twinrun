@@ -210,3 +210,22 @@ odiff in D7; antialiasing detection and the threshold value stay.
 Reverse if: OKLab at 0.1 flags pinned emulator noise that YIQ did not (then pixelmatch 7 or odiff),
 or a screen with changes far apart needs one crop per region.
 
+
+**D27. Base and head build in detached worktrees of the app repo, removed after the build; the
+config's build command runs in each through `sh -c` with the caller's environment; a file the
+commit lacks comes in only through `--local-file`, copied from the checkout, and a path the commit
+tracks is refused; the mock restarts for each side.** Item 12 (2026-10-24), dogfood #95
+(`docs/research/notes/ci_infra_signals.md`, section 9). A worktree holds tracked files only, and
+the dogfood debug build read three untracked ones: `local.properties`, `app/google-services.json`
+and the D5 debug network security config. `ANDROID_HOME` gives Gradle the SDK path, so
+`local.properties`, which also holds release signing secrets, is never copied. The tracked
+`google-services.json.sample` that the app's own CI copies in built, but the app crashed in
+Firebase Installations during sign in (`Please set your Application ID`), so the real file came in
+as a local file. A flag, not a config field: what a checkout holds differs between a workstation
+and CI, while the config is the app's. A copy over a tracked file would replace part of the commit
+under test on both sides and could hide the PR's change. A fresh mock gives each side the HAR from
+its first recording (D13's ordered then last), so head never starts on what base left. On #95:
+builds 13 s and 12 s, the whole run 179 s, the same 18,507 pixel crop as item 11. Refines D8.
+Reverse if: a build needs local files outside the repo, or a cold project build in a fresh
+worktree pushes typical runs past D12's 20 minutes; then build in place in a scratch clone kept
+between runs.

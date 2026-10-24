@@ -270,3 +270,38 @@ Recommended defaults (Android):
 
 ### Gaps
 - None of the defaults above have been benchmarked across apps; the timing basis is one app's CI (10 instrumented tests, API 35).
+
+## 9. Item 12 experiments: building base and head in worktrees (2026-10-24)
+
+Dogfood #95, base `3bc40b6` and head `3391968`, built by `twinrun run` in detached worktrees of a
+scratch worktree of the dogfood repo; S1 AVD on the replay of `spikes/s1/dashboard.har`.
+
+### Cited Findings
+- `git worktree add` checks out the commit's tracked files; ignored and untracked files of the
+  main checkout are not there. — [git-worktree](https://git-scm.com/docs/git-worktree)
+- The dogfood debug build reads three files no commit holds: `local.properties` (`sdk.dir`, plus
+  `release.*` signing values), `app/google-services.json` (gitignored; the release workflow
+  writes it from a secret) and `app/src/debug/res/xml/network_security_config.xml` (S1's
+  uncommitted D5 file). — dogfood `.gitignore`, `app/build.gradle.kts`,
+  [`release.yml`](https://github.com/bwhtech/helpdesk_mobile/blob/develop/.github/workflows/release.yml)
+- With no `local.properties` in the worktree and `ANDROID_HOME` set, `:app:assembleDebug`
+  passed; AGP reads the SDK path from `ANDROID_HOME`. —
+  [Android docs: environment variables](https://developer.android.com/tools/variables)
+- The dogfood CI builds debug after `cp app/google-services.json.sample app/google-services.json`.
+  — [`build.yml`](https://github.com/bwhtech/helpdesk_mobile/blob/develop/.github/workflows/build.yml)
+  Built that way, the app crashed during sign in: `java.lang.IllegalArgumentException: Please set
+  your Application ID` from `FirebaseInstallations.preConditionChecks`, called by Firebase
+  Performance's `TransportManager`. twinrun reported `inconclusive: sign in ...: Element not
+  found: Text matching regex: API Key`, exit 2 in 72 s; the crash was found in `logcat -b crash`.
+- With the real `google-services.json` and the debug network security config as `--local-file`:
+  `BUILD SUCCESSFUL` in 13 s (base) and 12 s (head), 43 tasks executed, warm Gradle user home;
+  whole run exit 0 in 179 s. Leaderboard 18,507 pixels changed, one crop around the three
+  highlighted avatars; `ticket_detail` and `ticket_detail_from_list` unchanged. Misses: 0 to the
+  backend on either side; 56 (base) and 68 (head) to other hosts.
+- After the run: no `twinrun-*` directory in the temp dir, only the main and scratch worktrees
+  listed, `http_proxy` `:0`, no mitmdump process.
+
+### Gaps
+- Per side timings (install, sign in, each screen) are not broken out; the 150 s after the builds
+  cover readiness and both sides.
+- A cold Gradle user home, as in CI without a cache, was not measured.
