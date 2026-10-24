@@ -16,3 +16,8 @@ screens:
     flow: .github/twinrun/flows/ticket_detail.yaml
     identity:
       text: Ticket ID
+  - id: leaderboard
+    flow: .github/twinrun/flows/leaderboard.yaml
+    identity:
+      text: Ranking
+      selected: true
