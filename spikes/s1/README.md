@@ -53,3 +53,23 @@ MAESTRO_API_KEY=replay-key MAESTRO_API_SECRET=replay-secret \
   twinrun capture --serial emulator-5554 --screen leaderboard --out <dir>
 twinrun compare --base <base dir>/leaderboard.png --head <head dir>/leaderboard.png --out crop.png
 ```
+
+## Run (item 12)
+
+`twinrun run` builds base and head in worktrees of the app repo, so it runs from a checkout of
+the dogfood app with `app/` laid over it: the config, the flows and the D5 debug network security
+config. Neither #95 commit has that config or `app/google-services.json`, so both go in as local
+files; the latter comes from the dogfood checkout and stays out of this repo. The tracked
+`google-services.json.sample` builds, but the app then crashes in Firebase Installations.
+
+```sh
+git -C <dogfood> worktree add --detach <root> develop
+cp -R app/. <root>/
+cp <dogfood>/app/google-services.json <root>/app/
+cd <root>
+ANDROID_HOME=<sdk> MAESTRO_API_KEY=replay-key MAESTRO_API_SECRET=replay-secret \
+  twinrun run --serial emulator-5554 --ca ~/.mitmproxy/mitmproxy-ca-cert.pem \
+    --base 3bc40b6 --head 3391968 --har <spikes/s1>/dashboard.har --out <dir> \
+    --local-file app/src/debug/res/xml/network_security_config.xml \
+    --local-file app/google-services.json
+```
