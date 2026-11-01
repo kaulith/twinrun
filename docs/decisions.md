@@ -296,7 +296,8 @@ always cold boots a new AVD. On a fresh boot, demo commands sent as soon as `sys
 was 1 were lost; sent once the dump showed System UI ready, they were delivered and then undone
 within 5 s while `sysui_tuner_demo_on` still read 1, so D22's read-back passed with the real clock
 on screen and a minute boundary between base and head would show as a diff. After the broadcast
-queues went idle they held. The clock is the read-back that matters, and only Maestro's hierarchy
+queues went idle they held. `adb root` itself joins the wait for adbd as root, since adbd closed
+the request 0.2 s after boot on the dogfood run. The clock is the read-back that matters, and only Maestro's hierarchy
 shows it, so the capture flow asserts it: a lost demo state is inconclusive, never a false diff.
 Refines D22 and D23.
 Reverse if: the capture assertion fails on fresh boots despite the idle wait (then find what

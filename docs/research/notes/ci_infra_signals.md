@@ -401,6 +401,12 @@ app's title, head enlarges it (`setTextSize(32)`).
   `github-actions[bot]`, crop on assets commit `c0b6651`, URL 200 `image/png`; CI screenshots
   show 12:00; misses 0 on both sides.
 
+- Dogfood probe PR #105, run [41320222228](https://github.com/bwhtech/helpdesk_mobile/actions/runs/41320222228): the drive
+  started 0.2 s after the emulator runner saw `sys.boot_completed`, and `adb root` failed with `adb:
+  unable to connect for root: closed`, inconclusive. In this repo's run the drive started 6 s after
+  boot and the same call passed. The root request now sits inside the bounded wait for adbd as root;
+  a refusal (`cannot run as root`) still ends it at once.
+
 ### Gaps
 - No fork PR was tried; the `pulls?head=` lookup was checked on other repositories' fork PRs.
 - An inconclusive drive posts no comment, and its failed run shows only in the Actions list.
