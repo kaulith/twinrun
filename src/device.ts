@@ -82,9 +82,11 @@ export class Device {
     await until("system error dialogs to clear", async () => !/Application (Not Responding|Error):/.test(await this.shell("dumpsys window windows")));
     for (const command of pinCommands) await this.shell(command);
     await this.shell("am wait-for-broadcast-idle");
-    await until("System UI to take demo commands", async () =>
-      demoModeReady(await this.shell("dumpsys activity service com.android.systemui/.SystemUIService DemoModeController")),
-    );
+    await until("System UI to take demo commands", async () => {
+      const missing = demoModeMissing(await this.shell("dumpsys activity service com.android.systemui/.SystemUIService DemoModeController"));
+      if (missing.length > 0) throw new Error(`missing ${missing.join(", ")}`);
+      return true;
+    });
     for (const command of demoCommands) await this.shell(command);
     await this.clearProxy();
     await this.trust(ca);
@@ -168,12 +170,11 @@ export class Device {
   }
 }
 
-export function demoModeReady(dump: string): boolean {
-  return (
-    dump.includes("isInDemoMode=true") &&
-    dump.includes("isDemoModeAllowed=true") &&
-    demoReceivers.every((command) => new RegExp(`^\\s*${command} : \\[\\w`, "m").test(dump))
-  );
+export function demoModeMissing(dump: string): string[] {
+  return [
+    ...["isInDemoMode=true", "isDemoModeAllowed=true"].filter((state) => !dump.includes(state)),
+    ...demoReceivers.filter((command) => !new RegExp(`^\\s*${command} : \\[\\w`, "m").test(dump)).map((command) => `${command} receiver`),
+  ];
 }
 
 export function matchFingerprint(expected: Partial<Fingerprint>, actual: Fingerprint): void {
