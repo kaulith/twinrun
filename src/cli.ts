@@ -2,7 +2,8 @@
 import { execFileSync } from "node:child_process";
 import { X509Certificate } from "node:crypto";
 import { once } from "node:events";
-import { appendFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { isAbsolute, join, normalize } from "node:path";
 import { parseArgs } from "node:util";
 import { Builder } from "./build.js";
@@ -13,8 +14,8 @@ import { Driver } from "./driver.js";
 import { GitHub } from "./github.js";
 import { Inconclusive } from "./inconclusive.js";
 import { Mock } from "./mock.js";
-import { renderReport, type RunResult } from "./report.js";
-import { run } from "./run.js";
+import { parseResult, renderReport } from "./report.js";
+import { drive } from "./run.js";
 
 const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
@@ -25,9 +26,11 @@ const usage = `usage: twinrun --version
        twinrun capture --serial <serial> --screen <id>... --out <dir>   (from the app repo root)
        twinrun compare --base <png> --head <png> --out <png>
        twinrun build --base <commit> --head <commit> --out <dir> [--local-file <path>...]   (from the app repo root)
-       twinrun run --serial <serial> --ca <pem> --base <commit> --head <commit> --har <har> --out <dir>
+       twinrun drive --serial <serial> --ca <pem> --builds <dir> --out <dir>   (from the app repo root)
+       twinrun run --serial <serial> --ca <pem> --base <commit> --head <commit> --out <dir>
                    [--local-file <path>...]   (from the app repo root)
-       twinrun comment --out <dir> --repo <owner/name> --pr <number>   (GITHUB_TOKEN in the environment)`;
+       twinrun comment --out <dir> --repo <owner/name> --branch <owner:branch> --head <sha>
+                       (GITHUB_TOKEN in the environment)`;
 
 try {
   const { values, positionals } = parseArgs({
@@ -43,13 +46,14 @@ try {
       base: { type: "string" },
       head: { type: "string" },
       "local-file": { type: "string", multiple: true },
+      builds: { type: "string" },
       repo: { type: "string" },
-      pr: { type: "string" },
+      branch: { type: "string" },
     },
     allowPositionals: true,
   });
   const command = positionals.join(" ");
-  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head, "local-file": localFiles = [], repo, pr } = values;
+  const { serial, ca, fingerprint, har, "backend-host": backendHosts, screen: screenIds, out, base, head, "local-file": localFiles = [], builds, repo, branch } = values;
   for (const file of localFiles) {
     if (isAbsolute(file) || normalize(file).startsWith("..") || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
       throw new Error(`--local-file ${file}: expected a file inside this checkout`);
@@ -64,7 +68,7 @@ try {
   } else if (command === "device check" && serial && fingerprint) {
     console.log(JSON.stringify(await new Device(serial).check(JSON.parse(readFileSync(fingerprint, "utf8"))), null, 2));
   } else if (command === "mock" && serial && har && backendHosts) {
-    const mock = await Mock.start(new Device(serial), har, backendHosts);
+    const mock = await Mock.start(new Device(serial), { hosts: backendHosts, har });
     console.error("serving the HAR; Ctrl-C stops it and prints the misses");
     await once(process, "SIGINT");
     console.log(JSON.stringify(await mock.stop(), null, 2));
@@ -88,28 +92,36 @@ try {
   } else if (command === "build" && base && head && out) {
     const config = readConfig();
     const commits = { base: commit("--base", base), head: commit("--head", head) };
-    const builder = new Builder(process.cwd(), config.build, localFiles, config.caps.timeoutMinutes);
-    mkdirSync(out, { recursive: true });
-    await builder.apk(commits.base, join(out, "base.apk"));
-    await builder.apk(commits.head, join(out, "head.apk"));
-    writeFileSync(join(out, "commits.json"), JSON.stringify(commits, null, 2));
+    await new Builder(process.cwd(), config.build, localFiles, config.caps.timeoutMinutes).apks(commits, out);
     console.log(JSON.stringify(commits, null, 2));
-  } else if (command === "run" && serial && ca && base && head && har && out) {
+  } else if (command === "drive" && serial && ca && builds && out) {
+    new X509Certificate(readFileSync(ca));
+    console.log(JSON.stringify(await drive({ config: readConfig(), serial, ca, builds, out }), null, 2));
+  } else if (command === "run" && serial && ca && base && head && out) {
     new X509Certificate(readFileSync(ca));
     const config = readConfig();
     const commits = { base: commit("--base", base), head: commit("--head", head) };
-    console.log(JSON.stringify(await run({ repo: process.cwd(), config, localFiles, serial, ca, har, out, ...commits }), null, 2));
-  } else if (command === "comment" && out && repo && pr) {
+    const scratch = mkdtempSync(join(tmpdir(), "twinrun-run-"));
+    try {
+      await new Builder(process.cwd(), config.build, localFiles, config.caps.timeoutMinutes).apks(commits, scratch);
+      console.log(JSON.stringify(await drive({ config, serial, ca, builds: scratch, out }), null, 2));
+    } finally {
+      rmSync(scratch, { recursive: true });
+    }
+  } else if (command === "comment" && out && repo && branch && head) {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error(`--repo ${repo}: expected owner/name`);
-    if (!/^[1-9]\d*$/.test(pr)) throw new Error(`--pr ${pr}: expected a pull request number`);
+    if (!/^[\w-]+:\S+$/.test(branch)) throw new Error(`--branch ${branch}: expected owner:branch`);
+    if (!/^[0-9a-f]{40}$/.test(head)) throw new Error(`--head ${head}: expected a commit SHA of 40 hex digits`);
     const token = process.env.GITHUB_TOKEN;
     if (!token) throw new Error("GITHUB_TOKEN: expected a token in the environment");
-    const result = JSON.parse(readFileSync(join(out, "result.json"), "utf8")) as RunResult;
+    const result = parseResult(readFileSync(join(out, "result.json"), "utf8"));
+    if (result.head.commit !== head) throw new Error(`result.json head.commit ${result.head.commit}, expected ${head}`);
     const github = new GitHub(repo, token);
+    const pr = await github.pullRequestAt(branch, head);
     const crops = result.screens.flatMap((screen) => (screen.changed ? [screen.crop] : []));
     const urls = await github.uploadCrops(Object.fromEntries(crops.map((crop) => [crop, readFileSync(join(out, crop))])));
     const body = renderReport(result, (crop) => urls[crop]);
-    console.log(JSON.stringify({ comment: await github.upsertComment(Number(pr), body) }, null, 2));
+    console.log(JSON.stringify({ comment: await github.upsertComment(pr, body) }, null, 2));
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, body);
   } else {
     throw new Error(usage);

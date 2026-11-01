@@ -16,7 +16,7 @@ class Replay:
     def configure(self, updated: set[str]) -> None:
         if "har" in updated:
             self.recordings = {}
-            for flow in io.read_flows_from_paths([ctx.options.har]):
+            for flow in io.read_flows_from_paths([ctx.options.har] if ctx.options.har else []):
                 self.recordings.setdefault(key(flow.request), []).append(flow.response)
 
     def request(self, flow: http.HTTPFlow) -> None:

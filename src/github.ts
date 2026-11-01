@@ -26,11 +26,18 @@ export class GitHub {
     return Object.fromEntries(Object.keys(crops).map((path) => [path, `https://github.com/${this.repo}/blob/${sha}/${path}?raw=true`]));
   }
 
+  async pullRequestAt(branch: string, head: string): Promise<number> {
+    const pulls = (await this.api("GET", `pulls?head=${encodeURIComponent(branch)}&state=open`)) as { number: number; head: { sha: string } }[];
+    const matching = pulls.filter((pull) => pull.head.sha === head);
+    if (matching.length !== 1) throw new Inconclusive(`open pull requests from ${branch} at ${head}: ${matching.length}, expected 1`);
+    return matching[0].number;
+  }
+
   async upsertComment(pr: number, body: string): Promise<string> {
     const text = `${marker}\n${body}`;
     for (let page = 1; ; page++) {
-      const comments = (await this.api("GET", `issues/${pr}/comments?per_page=${pageSize}&page=${page}`)) as { id: number; body?: string }[];
-      const sticky = comments.find((comment) => comment.body?.startsWith(marker));
+      const comments = (await this.api("GET", `issues/${pr}/comments?per_page=${pageSize}&page=${page}`)) as { id: number; body?: string; user: { type: string } | null }[];
+      const sticky = comments.find((comment) => comment.user?.type === "Bot" && comment.body?.startsWith(marker));
       if (sticky) return ((await this.api("PATCH", `issues/comments/${sticky.id}`, { body: text })) as { html_url: string }).html_url;
       if (comments.length < pageSize) break;
     }

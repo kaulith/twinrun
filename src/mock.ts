@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Config } from "./config.js";
 import type { Device } from "./device.js";
 import { Inconclusive } from "./inconclusive.js";
 import { until } from "./until.js";
@@ -26,7 +27,7 @@ export class Mock {
     private readonly scratch: string,
   ) {}
 
-  static async start(device: Device, har: string, backendHosts: string[]): Promise<Mock> {
+  static async start(device: Device, backend: Config["backend"]): Promise<Mock> {
     const scratch = await mkdtemp(join(tmpdir(), "twinrun-mock-"));
     const log = join(scratch, "mitmdump.log");
     await writeFile(join(scratch, "misses.jsonl"), "");
@@ -35,9 +36,9 @@ export class Mock {
       "mitmdump",
       [
         ["--listen-host", "127.0.0.1", "-p", String(port)],
-        ["--set", "connection_strategy=lazy", "-s", replayAddon, "--set", `har=${har}`],
-        ["--set", `misses=${join(scratch, "misses.jsonl")}`],
-        backendHosts.flatMap((host) => ["--set", `backend_hosts=${host}`]),
+        ["--set", "connection_strategy=lazy", "-s", replayAddon, "--set", `misses=${join(scratch, "misses.jsonl")}`],
+        backend.har === undefined ? [] : ["--set", `har=${backend.har}`],
+        backend.hosts.flatMap((host) => ["--set", `backend_hosts=${host}`]),
       ].flat(),
       { stdio: ["ignore", output, output], env: { ...process.env, PYTHONUNBUFFERED: "1" } },
     );

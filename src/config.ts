@@ -11,7 +11,7 @@ export type Screen = { id: string; identity: Identity } & ({ deepLink: string } 
 export interface Config {
   app: { id: string };
   build: { command: string; apk: string };
-  backend: { hosts: string[] };
+  backend: { hosts: string[]; har?: string };
   signIn?: string;
   screens: Screen[];
   caps: { screens: number; agentSteps: number; timeoutMinutes: number };
@@ -21,7 +21,7 @@ export function parseConfig(source: string): Config {
   const root = mapping(parse(source), "", ["app", "build", "backend", "signIn", "screens", "caps"]);
   const app = mapping(root.app, "app", ["id"]);
   const build = mapping(root.build, "build", ["command", "apk"]);
-  const backend = mapping(root.backend, "backend", ["hosts"]);
+  const backend = mapping(root.backend, "backend", ["hosts", "har"]);
   const caps = mapping(root.caps ?? {}, "caps", ["screens", "agentSteps", "timeoutMinutes"]);
   const screens = list(root.screens, "screens").map((value, i) => screen(value, `screens[${i}]`));
   const duplicate = screens.findIndex((s, i) => screens.findIndex((other) => other.id === s.id) !== i);
@@ -29,7 +29,10 @@ export function parseConfig(source: string): Config {
   return {
     app: { id: nonEmpty(app.id, "app.id") },
     build: { command: nonEmpty(build.command, "build.command"), apk: nonEmpty(build.apk, "build.apk") },
-    backend: { hosts: list(backend.hosts, "backend.hosts").map((host, i) => nonEmpty(host, `backend.hosts[${i}]`)) },
+    backend: {
+      hosts: list(backend.hosts, "backend.hosts").map((host, i) => nonEmpty(host, `backend.hosts[${i}]`)),
+      ...(backend.har === undefined ? {} : { har: nonEmpty(backend.har, "backend.har") }),
+    },
     ...(root.signIn === undefined ? {} : { signIn: nonEmpty(root.signIn, "signIn") }),
     screens,
     caps: {
