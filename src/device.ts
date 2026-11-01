@@ -71,8 +71,12 @@ export class Device {
   constructor(private readonly serial: string) {}
 
   async ready(ca: string): Promise<Fingerprint> {
-    if ((await this.adb("root")).includes("cannot")) throw new Inconclusive("adbd cannot run as root; D14 needs a google_apis image");
-    await until("adbd as root", async () => (await this.shell("id -u")) === "0");
+    let refused = false;
+    await until("adbd as root", async () => {
+      refused = (await this.adb("root")).includes("cannot");
+      return refused || (await this.shell("id -u")) === "0";
+    });
+    if (refused) throw new Inconclusive("adbd cannot run as root; D14 needs a google_apis image");
     await until("boot completed", async () => (await this.shell("getprop sys.boot_completed")) === "1");
     await until("package manager", async () => (await this.shell("pm path android")).startsWith("package:"));
     await until("system error dialogs to clear", async () => !/Application (Not Responding|Error):/.test(await this.shell("dumpsys window windows")));
