@@ -238,7 +238,8 @@ the comment holding a leading `<!-- twinrun -->` marker is edited in place, or c
 (2026-10-24, `docs/research/notes/visual_review_reporting.md`, section 8). Two dispatches with
 `GITHUB_TOKEN` on draft PR #2: comment `6386254993` created by `github-actions[bot]`, then edited;
 assets commits `6061a6f` and `f950baa` chained on S4's `db130c6` and verified by GitHub; the image
-rendered from the bot's comment like the owner's in S4. The REST API needs only the token and the
+rendered from the bot's comment like the owner's in S4, and signed in, GitHub Mobile and the job
+summary showed it too (2026-11-01). The REST API needs only the token and the
 output directory, no checkout or push in the publish job. D26's crop already holds base, head and
 diff, so it replaces D24's HTML table. A rejected fast forward, two runs racing for the branch, is
 inconclusive and never forced, since forcing would orphan the other run's images. Refines D9 and

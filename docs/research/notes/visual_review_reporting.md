@@ -291,9 +291,11 @@ Unsolved: native (non-RN) affected-screen detection, reaching deep screens deter
   `image/png` through a redirect to `raw.githubusercontent.com` now that the repo is public; a
   desktop browser, logged out, loaded it at 506 by 558.
 - Logged out, the run page shows "Sign in to view logs" and no job summary.
+- Signed in (2026-11-01, checked by the user): GitHub Mobile renders the bot's comment with the
+  crop, headings, code spans and list, marker hidden; the job summary of run 40108860582 shows the
+  same report with the crop.
 
 ### Gaps
-- GitHub Mobile render of the bot's comment, and the job summary, need a signed-in viewer.
 - The comment has no length cap; GitHub refuses bodies over 65,536 characters, and the backend
   miss list grows with the app's requests.
 - The marker match does not check the author; a comment that starts with the marker, written by
