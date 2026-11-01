@@ -407,6 +407,21 @@ app's title, head enlarges it (`setTextSize(32)`).
   boot and the same call passed. The root request now sits inside the bounded wait for adbd as root;
   a refusal (`cannot run as root`) still ends it at once.
 
+- Dogfood drive runs 41321078062, 41321839546 and 41323883854 (three regions) all timed out at the
+  System UI gate; with the gap named, it was `missing isInDemoMode=true, isDemoModeAllowed=true`,
+  receivers all present. twinrun's own drive passed twice and once timed out on a system dialog.
+  Same runner image (ubuntu-26.04 20261025), emulator 37.2.13 and options in all of them.
+- [Readiness probe 41324820120](https://github.com/kaulith/twinrun/actions/runs/41324820120), six
+  fresh emulators running only `device ready`, three with 2 cores and three with 4: all six timed
+  out at the gate after 334 s, and `settings get` then read `sysui_demo_allowed=0
+  sysui_tuner_demo_on=0`, though readiness had set both to 1. Cores made no difference.
+- [Watch probe 41325626366](https://github.com/kaulith/twinrun/actions/runs/41325626366), three
+  fresh emulators: both settings set to 1 right after boot, then read every second for 180 s. Two
+  held `11` throughout; one read `00` within 3 s and stayed `00`, also after
+  `am wait-for-broadcast-idle`. The action creates a new AVD each run, so every CI boot is a
+  first boot; the local AVD is not. What writes the 0 was not found (`logcat -v uptime` is not a
+  format on this image).
+
 ### Gaps
 - No fork PR was tried; the `pulls?head=` lookup was checked on other repositories' fork PRs.
 - An inconclusive drive posts no comment, and its failed run shows only in the Actions list.
