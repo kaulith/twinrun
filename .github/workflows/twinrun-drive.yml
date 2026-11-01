@@ -1,0 +1,17 @@
+name: twinrun drive
+
+on:
+  workflow_run:
+    workflows: [twinrun]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  drive:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/drive.yml
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
