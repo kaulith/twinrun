@@ -53,10 +53,12 @@ const pinCommands = [
   "settings put global sysui_tuner_demo_on 1",
 ];
 
+export const demoClock = "12:00";
+
 const demoReceivers = ["clock", "battery", "network", "notifications"];
 
 const demoCommands = [
-  "am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1200",
+  `am broadcast -a com.android.systemui.demo -e command clock -e hhmm ${demoClock.replace(":", "")}`,
   "am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false",
   "am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e fully true",
   "am broadcast -a com.android.systemui.demo -e command network -e mobile hide",
@@ -75,6 +77,7 @@ export class Device {
     await until("package manager", async () => (await this.shell("pm path android")).startsWith("package:"));
     await until("system error dialogs to clear", async () => !/Application (Not Responding|Error):/.test(await this.shell("dumpsys window windows")));
     for (const command of pinCommands) await this.shell(command);
+    await this.shell("am wait-for-broadcast-idle");
     await until("System UI to take demo commands", async () =>
       demoModeReady(await this.shell("dumpsys activity service com.android.systemui/.SystemUIService DemoModeController")),
     );

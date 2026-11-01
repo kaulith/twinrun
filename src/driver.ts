@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { stringify } from "yaml";
 import type { Screen } from "./config.js";
+import { demoClock } from "./device.js";
 import { Inconclusive } from "./inconclusive.js";
 
 export class Driver {
@@ -53,5 +54,6 @@ export function screenFlow(appId: string, screen: Screen): string {
   const way = "deepLink" in screen ? { openLink: screen.deepLink } : { runFlow: resolve(screen.flow) };
   const { selected, ...label } = screen.identity;
   const identity = selected ? { selected: true, containsDescendants: [label] } : label;
-  return `${stringify({ appId })}---\n${stringify(["stopApp", way, { assertVisible: identity }, { takeScreenshot: screen.id }])}`;
+  const demoStatusBar = { assertVisible: { id: "com.android.systemui:id/clock", text: demoClock } };
+  return `${stringify({ appId })}---\n${stringify(["stopApp", way, { assertVisible: identity }, demoStatusBar, { takeScreenshot: screen.id }])}`;
 }

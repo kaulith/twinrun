@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { screenFlow } from "./driver.js";
 
-test("a deep link screen opens from a stopped app, asserts its identity, then takes its screenshot", () => {
+test("a deep link screen opens from a stopped app, asserts its identity and the demo clock, then takes its screenshot", () => {
   const orderDetail = { id: "order_detail", deepLink: "orders://order/1042", identity: { text: "Order number" } };
   assert.equal(
     screenFlow("com.northwind.orders", orderDetail),
@@ -12,6 +12,9 @@ test("a deep link screen opens from a stopped app, asserts its identity, then ta
 - openLink: orders://order/1042
 - assertVisible:
     text: Order number
+- assertVisible:
+    id: com.android.systemui:id/clock
+    text: 12:00
 - takeScreenshot: order_detail
 `,
   );
