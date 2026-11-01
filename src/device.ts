@@ -79,7 +79,11 @@ export class Device {
     if (refused) throw new Inconclusive("adbd cannot run as root; D14 needs a google_apis image");
     await until("boot completed", async () => (await this.shell("getprop sys.boot_completed")) === "1");
     await until("package manager", async () => (await this.shell("pm path android")).startsWith("package:"));
-    await until("system error dialogs to clear", async () => !/Application (Not Responding|Error):/.test(await this.shell("dumpsys window windows")));
+    await until("system error dialogs to clear", async () => {
+      const dialog = /Application (?:Not Responding|Error): [\w.]+/.exec(await this.shell("dumpsys window windows"));
+      if (dialog) throw new Error(dialog[0]);
+      return true;
+    });
     for (const command of pinCommands) await this.shell(command);
     await this.shell("am wait-for-broadcast-idle");
     await until("System UI to take demo commands", async () => {
