@@ -1,0 +1,60 @@
+name: readiness probe
+
+on: workflow_dispatch
+
+permissions: {}
+
+jobs:
+  ready:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        cores: [2, 4]
+        run: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+      - name: Install mitmproxy and make its CA
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/mitmproxy.tar.gz" https://downloads.mitmproxy.org/12.2.3/mitmproxy-12.2.3-linux-x86_64.tar.gz
+          echo "2e95286b618fa6fd33e5e62a78c2e5112571d85f42ec2bac29b97ee242bdb5c5  $RUNNER_TEMP/mitmproxy.tar.gz" | sha256sum -c
+          mkdir "$RUNNER_TEMP/mitmproxy"
+          tar -xzf "$RUNNER_TEMP/mitmproxy.tar.gz" -C "$RUNNER_TEMP/mitmproxy"
+          touch "$RUNNER_TEMP/no.flows"
+          "$RUNNER_TEMP/mitmproxy/mitmdump" -n -r "$RUNNER_TEMP/no.flows"
+      - name: Write the readiness check
+        run: |
+          cat > "$RUNNER_TEMP/ready.sh" <<'EOF'
+          start=$(date +%s)
+          node dist/cli.js device ready --serial emulator-5554 --ca ~/.mitmproxy/mitmproxy-ca-cert.pem > /dev/null && { echo "ready in $(( $(date +%s) - start ))s"; exit 0; }
+          echo "not ready after $(( $(date +%s) - start ))s"
+          echo "sysui_demo_allowed=$(adb shell settings get global sysui_demo_allowed) sysui_tuner_demo_on=$(adb shell settings get global sysui_tuner_demo_on)"
+          adb shell dumpsys activity service com.android.systemui/.SystemUIService DemoModeController | grep -E 'isIn|isDemo|: \['
+          adb shell dumpsys window windows | grep -E 'Window #' | head -12
+          adb logcat -d -b events | grep -E 'am_anr|am_crash|am_proc_died' | head -12
+          exit 2
+          EOF
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: ${{ matrix.cores }}
+          emulator-build: 16740729
+          disable-animations: false
+          script: bash "$RUNNER_TEMP/ready.sh"
