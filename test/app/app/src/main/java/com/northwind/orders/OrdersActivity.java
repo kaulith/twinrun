@@ -12,6 +12,7 @@ public class OrdersActivity extends Activity {
         TextView title = new TextView(this);
         title.setText("Orders");
         title.setGravity(Gravity.CENTER);
+        title.setTextSize(32);
         setContentView(title);
     }
 }
