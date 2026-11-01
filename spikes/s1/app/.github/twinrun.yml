@@ -6,6 +6,7 @@ build:
 backend:
   hosts:
     - dev.localhost
+  har: .github/twinrun/dashboard.har
 signIn: .github/twinrun/flows/sign_in.yaml
 screens:
   - id: ticket_detail

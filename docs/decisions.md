@@ -263,3 +263,41 @@ repos. Refines D8 and D9.
 Reverse if: apps need steps before the build that the build command cannot hold (then a
 composite action for the build job), or `job.workflow_sha` is missing where twinrun runs (GitHub
 Enterprise Server).
+
+**D30. Workflow B ships as a reusable workflow (`.github/workflows/drive.yml`), called on
+`workflow_run` of Workflow A for a successful `pull_request` run. Its drive job (`actions: read`,
+`contents: read`, no secrets, no caches) reads config, flows and HAR from the default branch,
+downloads `twinrun-build` from the triggering run and runs `twinrun drive`, which takes only
+`base.apk`, `head.apk` and `commits.json`, each a regular file under its size cap, with both SHAs
+40 hex digits. Its publish job (`contents: write`, `pull-requests: write`) runs `twinrun comment`,
+which reads `result.json` as untrusted, requires its head commit to be the run's `head_sha`, finds
+the one open pull request from the run's head owner and branch at that commit, and edits only a
+bot's marker comment. The HAR moves into config as the optional `backend.har`; without one, every
+request is a miss (D20's last rung).** Item 15 (2026-11-01,
+`docs/research/notes/ci_infra_signals.md`, section 11). actions/checkout v7 refuses a fork PR's
+code under `workflow_run`, and the default branch is what maintainers merged, so everything that
+steers the drive is trusted and only the APKs, run inside the emulator, come from the PR. The
+pull request comes from GitHub's own event, not the artifact: `pull_requests` is empty for forks
+and `commits/{sha}/pulls` misses them, while `pulls?head=<owner>:<branch>` finds them; a stale
+head or two matching PRs is inconclusive. A marker comment written by a person is never edited.
+Maestro 2.11.0 and mitmproxy 12.2.3 are pinned by SHA-256; mitmproxy makes its CA with `mitmdump
+-n -r <empty file>`; the emulator build is pinned (D6). On test PR #4: drive job 2 m 55 s, publish
+12 s, the comment with the title crop from `github-actions[bot]`. Refines D8 (in CI the fixtures
+are the default branch's, not head's), D9, D28 (`--pr` gives way to `--branch` and `--head`) and
+D29.
+Reverse if: PRs need their own config, flow or HAR changes driven before merge (then Workflow A
+carries them as untrusted data), or GitHub fills `pull_requests` for fork PRs.
+
+**D31. Readiness waits for `am wait-for-broadcast-idle` and for System UI's `DemoModeController`
+dump to show demo mode on with receivers for clock, battery, network and notifications before it
+sends the demo commands; every capture flow asserts the status bar clock reads 12:00 before its
+screenshot.** Item 15 (2026-11-01, `docs/research/notes/ci_infra_signals.md`, section 11). CI
+always cold boots a new AVD. On a fresh boot, demo commands sent as soon as `sys.boot_completed`
+was 1 were lost; sent once the dump showed System UI ready, they were delivered and then undone
+within 5 s while `sysui_tuner_demo_on` still read 1, so D22's read-back passed with the real clock
+on screen and a minute boundary between base and head would show as a diff. After the broadcast
+queues went idle they held. The clock is the read-back that matters, and only Maestro's hierarchy
+shows it, so the capture flow asserts it: a lost demo state is inconclusive, never a false diff.
+Refines D22 and D23.
+Reverse if: the capture assertion fails on fresh boots despite the idle wait (then find what
+resets System UI and wait for that), or Maestro's hierarchy stops including System UI.

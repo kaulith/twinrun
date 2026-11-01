@@ -336,3 +336,74 @@ dependencies past AGP). Test PR #3 adds one `setTextSize` call.
   with its cache (section 1), so twice that without one.
 - A fork PR was not tried; GitHub runs `pull_request` from forks with a read-only token, which
   this job already asks for.
+
+## 11. Item 15: Workflow B on a test PR (2026-11-01)
+
+`.github/workflows/drive.yml` (`workflow_call`), called by `.github/workflows/twinrun-drive.yml`
+on `workflow_run` of `twinrun` (Workflow A) in this repo. Test PR #4: base centres the sample
+app's title, head enlarges it (`setTextSize(32)`).
+
+### Cited Findings
+- `workflow_run.pull_requests` is empty for a pull request from a fork. —
+  [github/docs#22501](https://github.com/github/docs/issues/22501),
+  [plotly.js#7805](https://github.com/plotly/plotly.js/issues/7805)
+- `GET /repos/{repo}/commits/{sha}/pulls` returned `[]` for the head SHA of four open fork PRs
+  (actions/checkout #2607 and #2593, mitmproxy/mitmproxy #8549 and #8548); `GET
+  /repos/{repo}/pulls?head=<fork owner>:<branch>&state=open` returned each one, with `head.sha`
+  equal to the PR's head, branch names with `/` included.
+- actions/checkout v7 refuses to check out a fork PR's code in `workflow_run` workflows triggered
+  by a pull request event, unless `allow-unsafe-pr-checkout` is set. —
+  [GitHub changelog 2026-06-18](https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout),
+  [actions/checkout#2454](https://github.com/actions/checkout/pull/2454)
+- Security Lab's split passes the PR number from the `pull_request` run as an artifact the
+  `workflow_run` run must treat as untrusted; GHSL-2024-178 is a `workflow_run` that used an
+  artifact unvalidated (CVE-2024-47179). —
+  [Preventing pwn requests](https://securitylab.github.com/research/github-actions-preventing-pwn-requests),
+  [GHSL-2024-178](https://securitylab.github.com/advisories/GHSL-2024-178_RSSHub)
+- actions/download-artifact v8.0.2 (2026-10-07, commit `9000827`, LICENSE MIT) downloads from
+  another run with `run-id` and `github-token`; v8 errors on a digest mismatch by default.
+- reactivecircus/android-emulator-runner v2.38.0: tag object `c9c93e6`, commit `a421e43` (the
+  dogfood CI's pin), LICENSE Apache-2.0; `arch` defaults to `x86`, `emulator-build` takes a
+  build number. `repository2-3.xml` (2026-11-01): emulator 37.2.13 is build 16740729 on
+  `channel-0`, 37.3.6 on `channel-2`.
+- Maestro cli-2.11.0 `maestro.zip`: SHA-256 `5384593c…283a`, equal to the release's
+  `checksums_sha256.txt`; it unzips to `maestro/bin`. mitmproxy 12.2.3
+  `mitmproxy-12.2.3-linux-x86_64.tar.gz` from downloads.mitmproxy.org: SHA-256 `2e95286b…b5c5`
+  computed on download; it holds `mitmproxy`, `mitmdump`, `mitmweb`. cli-2.12.0 (2026-10-26) and
+  mitmproxy 12.3.x (2026-10-22 on) were under two weeks old.
+- `mitmdump -n -r <empty file>` writes mitmproxy's CA files into `~/.mitmproxy` and exits 0;
+  `mitmdump -n` alone writes them and keeps running.
+- Fresh boot, S1 AVD with `sysui_demo_allowed` and `sysui_tuner_demo_on` reset to 0 first (as on
+  a new CI AVD): demo broadcasts sent 2 s after `sys.boot_completed` were lost (real clock,
+  notification icons). One second later `dumpsys activity service
+  com.android.systemui/.SystemUIService DemoModeController` showed `isInDemoMode=true`,
+  `isDemoModeAllowed=true` and receivers for every command.
+- Waiting for that dump before broadcasting was not enough: broadcast history showed all five
+  demo broadcasts `DELIVERED` to System UI at about 15 s uptime, the clock read 12:00 right after
+  readiness, and 5 s later, with no app started and `mKeyguardShowing=false`, the status bar showed
+  the real clock again with notification and location icons; in another run it stayed in demo
+  mode with the clock frozen at the time it re-entered (7:36), notifications showing. Same
+  System UI process throughout.
+- With `am wait-for-broadcast-idle` before that gate, 12:00 and hidden notifications held 5 s
+  later and after an app start, and a fresh-boot `twinrun drive` passed. `maestro hierarchy`
+  includes the status bar (`com.android.systemui:id/clock`, text `12:00`); `uiautomator dump`
+  does not. After `-e command exit`, `twinrun capture` reported `inconclusive: screen orders:
+  Assertion is false: "12:00", id: com.android.systemui:id/clock is visible`.
+- Maestro took `text: 12:00` unquoted in the flow YAML (YAML 1.1 would read it as 720).
+- On targetSdk 35 the sample app's content draws edge to edge, so its top-left title sat behind
+  the app bar and both sides captured the same pixels; centred, head's larger title gives 3,803
+  changed pixels on the arm64 Mac and on the x86_64 CI emulator alike.
+- Run [41315191348](https://github.com/kaulith/twinrun/actions/runs/41315191348) (Workflow A),
+  82 s. Run [41315317561](https://github.com/kaulith/twinrun/actions/runs/41315317561) (Workflow
+  B), listed under `main`, not the PR branch: drive job 2 m 55 s (npm 1 s with no cache,
+  artifact 1 s, Maestro 3 s, mitmproxy 2 s, emulator step 2 m 42 s: emulator zip 7 s, system
+  image 36 s, boot 31.2 s, `twinrun drive` 62 s); publish job 12 s. Comment `6559178058` by
+  `github-actions[bot]`, crop on assets commit `c0b6651`, URL 200 `image/png`; CI screenshots
+  show 12:00; misses 0 on both sides.
+
+### Gaps
+- No fork PR was tried; the `pulls?head=` lookup was checked on other repositories' fork PRs.
+- An inconclusive drive posts no comment, and its failed run shows only in the Actions list.
+- What resets System UI after boot was not found; the idle wait rests on two local fresh boots
+  and one CI run, and the capture assertion catches a recurrence.
+- Comment length and other-host miss URLs in `result.json` (carried from item 13) are open.

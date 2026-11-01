@@ -65,11 +65,12 @@ files; the latter comes from the dogfood checkout and stays out of this repo. Th
 ```sh
 git -C <dogfood> worktree add --detach <root> develop
 cp -R app/. <root>/
+cp dashboard.har <root>/.github/twinrun/
 cp <dogfood>/app/google-services.json <root>/app/
 cd <root>
 ANDROID_HOME=<sdk> MAESTRO_API_KEY=replay-key MAESTRO_API_SECRET=replay-secret \
   twinrun run --serial emulator-5554 --ca ~/.mitmproxy/mitmproxy-ca-cert.pem \
-    --base 3bc40b6 --head 3391968 --har <spikes/s1>/dashboard.har --out <dir> \
+    --base 3bc40b6 --head 3391968 --out <dir> \
     --local-file app/src/debug/res/xml/network_security_config.xml \
     --local-file app/google-services.json
 ```
