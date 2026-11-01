@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { matchFingerprint, type Fingerprint } from "./device.js";
+import { demoModeReady, matchFingerprint, type Fingerprint } from "./device.js";
 
 const pixel6: Fingerprint = {
   image: "google/sdk_gphone64_arm64/emu64a:15/AE3A.240806.043/12960925:userdebug/dev-keys",
@@ -25,4 +25,17 @@ test("a drifted setting is named with the value expected", () => {
   assert.throws(() => matchFingerprint(pixel6, { ...pixel6, fontScale: "1.3" }), {
     message: "fontScale 1.3, expected 1.0",
   });
+});
+
+test("demo mode is not ready while the status bar clock has no receiver", () => {
+  const dump = `    DemoModeController state -
+      isInDemoMode=true
+      isDemoModeAllowed=true
+      receiverMap= [
+        battery : [BatteryControllerImplGoogle]
+        clock : []
+        network : [MobileContextProvider]
+        notifications : [CollapsedStatusBarFragment$4]
+     ]`;
+  assert.equal(demoModeReady(dump), false);
 });

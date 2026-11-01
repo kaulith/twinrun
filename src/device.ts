@@ -51,6 +51,11 @@ const pinCommands = [
   "settings put global animator_duration_scale 0",
   "settings put global sysui_demo_allowed 1",
   "settings put global sysui_tuner_demo_on 1",
+];
+
+const demoReceivers = ["clock", "battery", "network", "notifications"];
+
+const demoCommands = [
   "am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1200",
   "am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false",
   "am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e fully true",
@@ -70,6 +75,10 @@ export class Device {
     await until("package manager", async () => (await this.shell("pm path android")).startsWith("package:"));
     await until("system error dialogs to clear", async () => !/Application (Not Responding|Error):/.test(await this.shell("dumpsys window windows")));
     for (const command of pinCommands) await this.shell(command);
+    await until("System UI to take demo commands", async () =>
+      demoModeReady(await this.shell("dumpsys activity service com.android.systemui/.SystemUIService DemoModeController")),
+    );
+    for (const command of demoCommands) await this.shell(command);
     await this.clearProxy();
     await this.trust(ca);
     const fingerprint = await this.fingerprint();
@@ -150,6 +159,14 @@ export class Device {
   private shell(command: string): Promise<string> {
     return this.adb("shell", command);
   }
+}
+
+export function demoModeReady(dump: string): boolean {
+  return (
+    dump.includes("isInDemoMode=true") &&
+    dump.includes("isDemoModeAllowed=true") &&
+    demoReceivers.every((command) => new RegExp(`^\\s*${command} : \\[\\w`, "m").test(dump))
+  );
 }
 
 export function matchFingerprint(expected: Partial<Fingerprint>, actual: Fingerprint): void {
