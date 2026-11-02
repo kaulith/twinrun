@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
 import { Inconclusive } from "./inconclusive.js";
 import { until } from "./until.js";
@@ -84,8 +85,10 @@ export class Device {
       if (dialog) throw new Error(dialog[0]);
       return true;
     });
+    // On a first boot System UI's tuner turns demo mode off 5 s after it starts, unless the tuner version is already 4
+    await this.shell("settings put secure sysui_tuner_version 4");
+    await sleep(6000);
     for (const command of pinCommands) await this.shell(command);
-    await this.shell("am wait-for-broadcast-idle");
     await until("System UI to take demo commands", async () => {
       const missing = demoModeMissing(await this.shell("dumpsys activity service com.android.systemui/.SystemUIService DemoModeController"));
       if (missing.length > 0) throw new Error(`missing ${missing.join(", ")}`);
