@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         cores: [2]
-        run: [1, 2, 3]
+        run: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,18 +34,11 @@ jobs:
       - name: Write the readiness check
         run: |
           cat > "$RUNNER_TEMP/ready.sh" <<'EOF'
-          adb root > /dev/null; sleep 3
-          adb shell 'settings put global sysui_demo_allowed 1; settings put global sysui_tuner_demo_on 1'
-          echo "set at uptime $(adb shell cut -d' ' -f1 /proc/uptime)"
-          last=11
-          for i in $(seq 1 180); do
-            now="$(adb shell settings get global sysui_demo_allowed | tr -d '\r')$(adb shell settings get global sysui_tuner_demo_on | tr -d '\r')"
-            [ "$now" != "$last" ] && echo "uptime $(adb shell cut -d' ' -f1 /proc/uptime): allowed,on = $now"
-            last=$now; sleep 1
-          done
-          adb shell 'am wait-for-broadcast-idle' | tail -1
-          echo "after idle: $(adb shell settings get global sysui_demo_allowed)$(adb shell settings get global sysui_tuner_demo_on)"
-          adb logcat -d -v uptime | grep -iE 'demo|sysui_|tuner' | grep -v 'Demo Carrier' | head -40
+          start=$(date +%s)
+          node dist/cli.js device ready --serial emulator-5554 --ca ~/.mitmproxy/mitmproxy-ca-cert.pem > /dev/null && { echo "ready in $(( $(date +%s) - start ))s"; sleep 30; echo "30 s later: $(adb shell settings get global sysui_demo_allowed)$(adb shell settings get global sysui_tuner_demo_on)"; exit 0; }
+          echo "not ready after $(( $(date +%s) - start ))s"
+          echo "allowed,on,tuner = $(adb shell settings get global sysui_demo_allowed),$(adb shell settings get global sysui_tuner_demo_on),$(adb shell settings get secure sysui_tuner_version)"
+          exit 2
           EOF
       - name: Enable KVM
         run: |
