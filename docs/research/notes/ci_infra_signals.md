@@ -422,9 +422,25 @@ app's title, head enlarges it (`setTextSize(32)`).
   first boot; the local AVD is not. What writes the 0 was not found (`logcat -v uptime` is not a
   format on this image).
 
+- Cause, from System UI's source: `TunerServiceImpl`, when it starts with `sysui_tuner_version`
+  below 4, posts `clearAllFromUser` 5 s later on the main handler, which calls
+  `requestFinishDemoMode()` and `requestSetDemoModeAllowed(false)`, then stores version 4. Every
+  CI boot is a device's first; the local AVD already reads 4, so the local fresh boots that seemed
+  to show the broadcast idle wait working were past the clear already. —
+  [TunerServiceImpl.java](https://github.com/aosp-mirror/platform_frameworks_base/blob/main/packages/SystemUI/src/com/android/systemui/tuner/TunerServiceImpl.java)
+- [Probe 41408779210](https://github.com/kaulith/twinrun/actions/runs/41408779210), version set to
+  4 then a 6 s wait before the demo settings: 4 of 6 ready in 16 to 22 s and still `11` 30 s
+  later; one ended at `0,0,4` (the clear fired later than 6 s on a loaded emulator), one timed out
+  on `Application Not Responding: com.google.android.apps.nexuslauncher`, up the whole 300 s.
+- Locally, with the launcher frozen (`kill -STOP`) and tapped, its ANR dialog came up;
+  `am force-stop` on it closed the dialog within 1 s and the launcher came back with a new pid.
+- [Probe 41409885197](https://github.com/kaulith/twinrun/actions/runs/41409885197), demo settings
+  re-applied on every probe of the gate and other apps' hung dialogs force-stopped: 6 of 6 ready in
+  8 to 27 s, both settings `11` 30 s later.
+
 ### Gaps
 - No fork PR was tried; the `pulls?head=` lookup was checked on other repositories' fork PRs.
 - An inconclusive drive posts no comment, and its failed run shows only in the Actions list.
-- What resets System UI after boot was not found; the idle wait rests on two local fresh boots
-  and one CI run, and the capture assertion catches a recurrence.
+- A clear that fires after the gate passes is still possible in principle; the capture clock
+  assertion and the side-end fingerprint turn it into inconclusive.
 - Comment length and other-host miss URLs in `result.json` (carried from item 13) are open.

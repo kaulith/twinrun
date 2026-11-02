@@ -302,3 +302,19 @@ shows it, so the capture flow asserts it: a lost demo state is inconclusive, nev
 Refines D22 and D23.
 Reverse if: the capture assertion fails on fresh boots despite the idle wait (then find what
 resets System UI and wait for that), or Maestro's hierarchy stops including System UI.
+
+**D32. On a first boot, readiness writes `sysui_tuner_version` 4 and re-applies both demo settings on
+every probe of the System UI gate until System UI reports demo mode on; a system error dialog from
+any app but System UI ends that app with `am force-stop`, then the wait goes on; the broadcast idle
+wait is dropped.** Item 15 (2026-11-02, `docs/research/notes/ci_infra_signals.md`, section 11).
+System UI's tuner, starting on a device below tuner version 4, turns demo mode off once, 5 s after
+it starts and later when its main thread lags; every CI emulator is a first boot. Writing version 4
+stops a tuner that starts afterwards from scheduling the clear, and re-applying the settings
+outlasts one already scheduled; no fixed sleep holds, since a 6 s margin failed on a loaded
+emulator. D31's broadcast idle wait rested on local boots past the clear already, so it goes. A
+launcher's ANR dialog stayed up 300 s after boot, which is D22's reverse condition; ending the hung
+app closes its dialog and does not touch the app under test, which is installed later, while System
+UI's own dialog is still waited out (D22). Six fresh CI emulators: ready in 8 to 27 s, demo mode on
+30 s later in all six. Refines D22 and replaces D31's idle wait; the capture clock assertion stays.
+Reverse if: a System UI dialog or a late tuner clear makes CI runs inconclusive often (then reuse a
+booted AVD past its first boot), or System UI moves the clear out of `TunerServiceImpl`.
