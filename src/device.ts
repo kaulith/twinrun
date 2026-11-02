@@ -2,7 +2,6 @@ import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
 import { Inconclusive } from "./inconclusive.js";
 import { until } from "./until.js";
@@ -50,9 +49,9 @@ const pinCommands = [
   "settings put global window_animation_scale 0",
   "settings put global transition_animation_scale 0",
   "settings put global animator_duration_scale 0",
-  "settings put global sysui_demo_allowed 1",
-  "settings put global sysui_tuner_demo_on 1",
 ];
+
+const demoSettings = ["sysui_demo_allowed", "sysui_tuner_demo_on"];
 
 export const demoClock = "12:00";
 
@@ -81,15 +80,16 @@ export class Device {
     await until("boot completed", async () => (await this.shell("getprop sys.boot_completed")) === "1");
     await until("package manager", async () => (await this.shell("pm path android")).startsWith("package:"));
     await until("system error dialogs to clear", async () => {
-      const dialog = /Application (?:Not Responding|Error): [\w.]+/.exec(await this.shell("dumpsys window windows"));
-      if (dialog) throw new Error(dialog[0]);
-      return true;
+      const dialog = /Application (?:Not Responding|Error): ([\w.]+)/.exec(await this.shell("dumpsys window windows"));
+      if (!dialog) return true;
+      if (dialog[1] !== "com.android.systemui") await this.shell(`am force-stop ${dialog[1]}`);
+      throw new Error(dialog[0]);
     });
-    // On a first boot System UI's tuner turns demo mode off 5 s after it starts, unless the tuner version is already 4
-    await this.shell("settings put secure sysui_tuner_version 4");
-    await sleep(6000);
     for (const command of pinCommands) await this.shell(command);
+    // on a first boot System UI's tuner turns demo mode off once, some seconds after it starts below version 4
+    await this.shell("settings put secure sysui_tuner_version 4");
     await until("System UI to take demo commands", async () => {
+      for (const setting of demoSettings) await this.shell(`settings put global ${setting} 1`);
       const missing = demoModeMissing(await this.shell("dumpsys activity service com.android.systemui/.SystemUIService DemoModeController"));
       if (missing.length > 0) throw new Error(`missing ${missing.join(", ")}`);
       return true;
