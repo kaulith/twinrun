@@ -438,6 +438,12 @@ app's title, head enlarges it (`setTextSize(32)`).
   re-applied on every probe of the gate and other apps' hung dialogs force-stopped: 6 of 6 ready in
   8 to 27 s, both settings `11` 30 s later.
 
+- Dogfood probe PR #105 (undoes #95's avatar contrast) after the D32 pin: Workflow A 4 m (two cold
+  builds), drive job 6 m 14 s (boot 31.4 s), publish 12 s; comment `6572476569` by
+  `github-actions[bot]`: leaderboard 18,494 pixels around the three highlighted avatars,
+  `ticket_detail` and `ticket_detail_from_list` unchanged, 0 backend misses, 117 and 89 to other
+  hosts; crop URL 200 `image/png`.
+
 ### Gaps
 - No fork PR was tried; the `pulls?head=` lookup was checked on other repositories' fork PRs.
 - An inconclusive drive posts no comment, and its failed run shows only in the Actions list.
